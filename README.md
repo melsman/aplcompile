@@ -2,7 +2,7 @@
 
 This software implements an APL compiler in Standard ML. 
 
-See [the compilation scheme](aplcompile/comp.md).
+See [the compilation scheme](aplcompile/blob/master/comp.md).
 
 ## Try it!
 

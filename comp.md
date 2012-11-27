@@ -4,7 +4,7 @@ Two kinds of data:
 
 ```sml
   datatype D =
-      A of m M       (* m: MoA array *)
+      A of m M	     (* m: MoA array *)
     | F of m -> m M
 ```
 
