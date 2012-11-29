@@ -17,7 +17,7 @@ signal ⍳ 30
 
 Here is what happens when the program is compiled and executed:
 
-    mael@gaffy:~/gits/aplcompile$ ./test
+    mael@gaffy:~/gits/aplcompile$ ./test test.apl
     Reading file: test.apl
     Program lexed:
      Id(signal) Larrow Lbra 5 Add Omega Rbra Newline Id(signal) Iota 30 Newline Newline

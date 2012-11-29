@@ -32,6 +32,23 @@ local
   fun StoI s = Int.fromString(repair s)
   fun StoD s = Real.fromString(repair s)
 in
+
+fun compOpr2_i8a2a comp G e1 e2 opr1 opr2 k =
+    comp G e2 (fn (s2,G2) =>
+    comp (G++G2) e1 (fn (s1,G1) =>
+    case (s1,s2) of
+      (Is i1, Ais a2) => k(Ais(opr1 i1 a2),G2++G1)
+    | (Is i1, Ads a2) => k(Ads(opr2 i1 a2),G2++G1)
+    | _ => raise Fail "compOpr2_i8a2a: expecting integer and array arguments"))
+
+fun compOpr2_a8a2aM comp G e1 e2 opr1 opr2 k =
+    comp G e2 (fn (s2,G2) =>
+    comp (G++G2) e1 (fn (s1,G1) =>
+    case (s1,s2) of
+      (Ais a1, Ais a2) => opr1 a1 a2 >>= (fn a => k(Ais a,G2++G1))
+    | (Ads a1, Ads a2) => opr2 a1 a2 >>= (fn a => k(Ads a,G2++G1))
+    | _ => raise Fail "compOpr2_a8a2aM: expecting two similar arrays as arguments"))
+
 fun compileAst e =
     let fun comp G e k =
             case e of
@@ -65,7 +82,7 @@ fun compileAst e =
                                       SOME i => SOME(I i::acc)
                                     | NONE => NONE)
                                  | _ => NONE) (SOME[]) es of
-                 SOME is => k(Ais(vec(fromList(List.rev is))),emp)
+                 SOME is => k(Ais(vec(fromList is)),emp)
                | NONE =>
                  case List.foldr (fn (e,acc) =>
                                      let val s = case e of
@@ -77,7 +94,7 @@ fun compileAst e =
                                         | NONE => raise Fail ("could not parse double value " ^ s)
                                      end) [] es of
                    [] => raise Fail "expecting a non-empty sequence of integers or doubles"
-                 | ds => k(Ads(vec(fromList(List.rev ds))),emp))
+                 | ds => k(Ads(vec(fromList ds)),emp))
             | App1E(Var v,e1) =>
               (case lookup G v of
                  SOME (Fs f) =>
@@ -86,6 +103,10 @@ fun compileAst e =
                | SOME _ => raise Fail ("comp: variable " ^ v ^ " is not a function")
                | NONE => raise Fail ("comp: no variable " ^ v ^ " in the environment"))
             | App1E(Symb L.Iota,e1) => compOpr1_i2ia G e1 iota k
+            | App2E(Symb L.Take,e1,e2) => compOpr2_i8a2a comp G e1 e2 APL.take APL.take k
+            | App2E(Symb L.Drop,e1,e2) => compOpr2_i8a2a comp G e1 e2 APL.drop APL.drop k
+            | App2E(Symb L.Rot,e1,e2) => compOpr2_i8a2a comp G e1 e2 APL.rotate APL.rotate k
+            | App2E(Symb L.Cat,e1,e2) => compOpr2_a8a2aM comp G e1 e2 catenate catenate k
             | App2E(Symb L.Add,e1,e2) => compOpr2 G e1 e2 (op +) k
             | App2E(Symb L.Sub,e1,e2) => compOpr2 G e1 e2 (op -) k
             | App2E(Symb L.Times,e1,e2) => compOpr2 G e1 e2 (op *) k
@@ -102,10 +123,10 @@ fun compileAst e =
           comp G e2 (fn (s2,G2) =>
           comp (G++G2) e1 (fn (s1,G1) =>
           case (s1,s2) of
-            (Is i1, Is i2) => k(Is(i1+i2),G2++G1)
-          | (Ais a1, Ais a2) => sum Int (op +) a1 a2 >>= (fn x => k(Ais x,G2++G1))
-          | (Ais a1, Is i2) => k(Ais(mmap(fn x => x+i2)a1),G2++G1)
-          | (Is i1, Ais a2) => k(Ais(mmap(fn x => i1+x)a2),G2++G1)
+            (Is i1, Is i2) => k(Is(opr(i1,i2)),G2++G1)
+          | (Ais a1, Ais a2) => sum Int opr a1 a2 >>= (fn x => k(Ais x,G2++G1))
+          | (Ais a1, Is i2) => k(Ais(mmap(fn x => opr(x,i2))a1),G2++G1)
+          | (Is i1, Ais a2) => k(Ais(mmap(fn x => opr(i1,x))a2),G2++G1)
           | (Ds _, _) => raise Fail "AppE2.double1"
           | (_, Ds _) => raise Fail "AppE2.double2"
           | (Ads _, _) => raise Fail "AppE2.double array1"
