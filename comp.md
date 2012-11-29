@@ -1,47 +1,56 @@
 ## Compiling APL
 
-Two kinds of data:
+Dynamically typed __terms__:
 
 ```sml
-  datatype D =
-      A of m M       (* m: MoA array *)
-    | F of m -> m M
+  type mi = Int Num m   (* Multidimensional integer array *)
+
+  datatype s =          (* Terms *)
+      Is of INT         (*   integer *)
+    | Ds of DOUBLE      (*   double *)
+    | Ais of mi         (*   integer array *)
+    | Fs of s -> s M    (*   function in-lining *)
 ```
 
-Environments map variables (x) to data:
+Environments (G) map identifiers (variables and symbols) to terms:
 
-    E \in ENV = VAR -fin-> D
+    G \in ENV = ID -> s
 
 Compilation:
 
-    [_]_ : EXP -> ENV -> D * ENV
+    [ _ ] _ _ : AST -> ENV -> (s * ENV -> s M) -> s M
 
-    [a <- e; s] E =
-      let (d, _) = [e]E
-          E' = {a -> d}
-      in [s](E'@E)
+    [e1; e2] G k =
+      [e1] G (fn (s1,G1) =>
+      [e2] (G1@G) (fn (s2,G2) =>
+      k (s2,G2@G1)))
 
-    [lam e] E =
+    [e1 + e2] G k =
+      [e2] G (fn (s2,G2) =>
+      [e1] (G2@G) (fn (s1,G1) =>
+      case (s1, s2) of
+           (Is i1, Is i2) => k(Is(i1+i2),G2@G1)
+         | (Ais a1, Ais a2) => sum (op +) a1 a2 >>= (fn x => k(Ais x,G2@G1))
+         | (Ais a1, Is i2) => k(Ais(mmap(fn x => x+i2)a1),G2@G1)
+         | (Is i1, Ais a2) => k(Ais(mmap(fn x => i1+x)a2),G2@G1)
+         | _ => err))
+
+    [v <- e] G k =
+       [e] G (fn (s,_) => k(s,{v->s}))
+
+    [a] G k = k (G(a),{})
+
+    [lam e] G k =
       let f x =
-        let E' = {w -> A(ret x)}
-            (A m,_) = [e](E'@E)
-        in m
-      in (F f, emp)
+        let G' = {w -> x}
+        in [e] (G'@G) (fn (s,_) => ret s)
+      in k(Fs f,{})
       end
 
-    [e1 + e2] E =
-      let (A c2,E2) = [e2]E
-          (A c1,E1) = [e1](E1@E)
-      in (A(do m2 <- c2
-               m1 <- c1
-               ret m1+m2),
-          E2@E1)
-      end
+    [a(e)] G k =
+      case G(a) of
+         Fs f =>
+           [e] G (fn (s,G') =>
+           f s >>= (fn s' => k(s',G')))
+       | _ => err
 
-    [a] E =
-      (E(a),emp)
-
-    [a(e)] E =
-      let (A c,_) = [e]E
-           F f = E(a)
-      in (A(f(c)),emp)
