@@ -5,13 +5,15 @@ fun prln s = print(s ^ "\n")
 local
   open ILmoa
 
-  type mi = Int Num m   (* Multidimensional integer array *)
+  type mi = Int Num m    (* Multidimensional integer array *)
+  type md = Double Num m (* Multidimensional double array *)
 
-  datatype s =          (* Terms *)
-      Is of INT         (*   integer *)
-    | Ds of DOUBLE      (*   double *)
-    | Ais of mi         (*   integer array *)
-    | Fs of s -> s M    (*   function in-lining *)
+  datatype s =           (* Terms *)
+      Is of INT          (*   integer *)
+    | Ds of DOUBLE       (*   double *)
+    | Ais of mi          (*   integer array *)
+    | Ads of md          (*   double array *)
+    | Fs of s -> s M     (*   function in-lining *)
 
   open AplAst
   type env = (id * s) list
@@ -25,7 +27,8 @@ local
   val op ++ = plus
   fun uncurry f (x,y) = f x y
   infix >>=
-  fun repair s = String.translate (fn #"-" => "~") s
+  fun repair s = String.translate (fn #"-" => "~"
+                                    | c => String.str c) s
   fun StoI s = Int.fromString(repair s)
   fun StoD s = Real.fromString(repair s)
 in
@@ -59,13 +62,22 @@ fun compileAst e =
             | VecE es =>
               (case List.foldr (fn (IntE s,SOME acc) =>
                                    (case StoI s of
-                                      SOME i => SOME(i::acc)
+                                      SOME i => SOME(I i::acc)
                                     | NONE => NONE)
                                  | _ => NONE) (SOME[]) es of
-                 SOME is => k(vec(fromList(rev is)),emp)
+                 SOME is => k(Ais(vec(fromList(List.rev is))),emp)
                | NONE =>
-                 
-            | )
+                 case List.foldr (fn (e,acc) =>
+                                     let val s = case e of
+                                                   IntE s => s
+                                                 | DoubleE s => s
+                                                 | _ => raise Fail "expecting only integers or doubles"
+                                     in case StoD s of
+                                          SOME d => D d :: acc
+                                        | NONE => raise Fail ("could not parse double value " ^ s)
+                                     end) [] es of
+                   [] => raise Fail "expecting a non-empty sequence of integers or doubles"
+                 | ds => k(Ads(vec(fromList(List.rev ds))),emp))
             | App1E(Var v,e1) =>
               (case lookup G v of
                  SOME (Fs f) =>
@@ -96,6 +108,8 @@ fun compileAst e =
           | (Is i1, Ais a2) => k(Ais(mmap(fn x => i1+x)a2),G2++G1)
           | (Ds _, _) => raise Fail "AppE2.double1"
           | (_, Ds _) => raise Fail "AppE2.double2"
+          | (Ads _, _) => raise Fail "AppE2.double array1"
+          | (_, Ads _) => raise Fail "AppE2.double array2"
           | (Fs _,_) => raise Fail "AppE2.function1"
           | (_, Fs _) => raise Fail "AppE2.function2"))
         and compId G id k =

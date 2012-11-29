@@ -34,7 +34,7 @@ Here is what happens when the program is compiled and executed:
     int kernel(int n1) {
       int n0 = 0;
       for (int n5 = 0; n5 < 30; n5++) {
-	n0 = ((6+n0)+n5);
+        n0 = ((6+n0)+n5);
       }
       return n0;
     }
@@ -61,4 +61,3 @@ Todo: Operators and improved error handling.
 ## License
 
 This software is published under the [MIT License](MIT_LICENSE.md).
-
