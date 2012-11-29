@@ -4,6 +4,42 @@ This software implements an APL compiler in Standard ML.
 
 See [the compilation scheme](aplcompile/blob/master/comp.md).
 
+## An example
+
+Here is the result of compiling and running the following program,
+which is automatically extended to sum together all elements of the
+result array:
+
+```apl
+signal ← {5+⍵}
+signal ⍳ 30
+```
+
+Here is what happens when the program is compiled and executed:
+
+    mael@gaffy:~/gits/aplcompile$ ./test
+    Reading file: test.apl
+    Program lexed:
+     Id(signal) Larrow Lbra 5 Add Omega Rbra Newline Id(signal) Iota 30 Newline Newline
+    Parsing tokens...
+    AST is
+     [Assign(signal,Lam(Unres[5,Add,Omega])),Unres[V(signal),Iota,30]]
+    Resolving:
+     Assign(signal,Lam(Unres[5,Add,Omega]))
+    Resolving:
+     Unres[V(signal),Iota,30]
+    Parse success:
+     [Assign(signal,Lam(App2(Add,5,Omega))),App1(signal,App1(Iota,30))]
+    Evaluating
+    int kernel(int n1) {
+      int n0 = 0;
+      for (int n5 = 0; n5 < 30; n5++) {
+	n0 = ((6+n0)+n5);
+      }
+      return n0;
+    }
+    Result is 615
+
 ## Try it!
 
 The software makes use of the [smlunicode

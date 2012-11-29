@@ -20,6 +20,8 @@ Compilation:
 
     [ _ ] _ _ : AST -> ENV -> (s * ENV -> s M) -> s M
 
+    [i] G k = k (Is(I i),{})
+
     [e1; e2] G k =
       [e1] G (fn (s1,G1) =>
       [e2] (G1@G) (fn (s2,G2) =>
