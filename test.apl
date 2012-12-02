@@ -1,3 +1,3 @@
 signal ← {5+⍵}
-signal ⍳ 30
++/ signal ⍳ 30
 
