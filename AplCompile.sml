@@ -41,7 +41,27 @@ fun compOpr2_i8a2a opr1 opr2 =
 fun compOpr2_a8a2aM opr1 opr2 =
  fn (Ais a1, Ais a2) => opr1 a1 a2 >>= (fn a => ret(Ais a))
   | (Ads a1, Ads a2) => opr2 a1 a2 >>= (fn a => ret(Ads a))
+  | (Ais a1, e2) => compOpr2_a8a2aM opr1 opr2 (Ads(mmap i2d a1),e2)
+  | (e1, Ais a2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(mmap i2d a2))
+  | (Is i1,e2) => compOpr2_a8a2aM opr1 opr2 (Ais(scl i1),e2)
+  | (e1, Is i2) => compOpr2_a8a2aM opr1 opr2 (e1,Ais(scl i2))
   | _ => raise Fail "compOpr2_a8a2aM: expecting two similar arrays as arguments"
+
+fun compOpr2 opr oprd =
+ fn (Is i1, Is i2) => ret(Is(opr(i1,i2)))
+  | (Ds d1, Ds d2) => ret(Ds(oprd(d1,d2)))
+  | (Ais a1, Ais a2) => sum Int opr a1 a2 >>= (fn x => ret(Ais x))
+  | (Ads a1, Ads a2) => sum Double oprd a1 a2 >>= (fn x => ret(Ads x))
+  | (Ais a1, Is i2) => ret(Ais(mmap(fn x => opr(x,i2))a1))
+  | (Ads a1, Ds d2) => ret(Ads(mmap(fn x => oprd(x,d2))a1))
+  | (Is i1, Ais a2) => ret(Ais(mmap(fn x => opr(i1,x))a2))
+  | (Ds d1, Ads a2) => ret(Ads(mmap(fn x => oprd(d1,x))a2))
+  | (Is i1, e2) => compOpr2 opr oprd (Ds(i2d i1),e2)
+  | (e1, Is i2) => compOpr2 opr oprd (e1,Ds(i2d i2))
+  | (Ais a1, e2) => compOpr2 opr oprd (Ads(mmap i2d a1),e2)
+  | (e1, Ais a2) => compOpr2 opr oprd (e1,Ads(mmap i2d a2))
+  | (Fs _,_) => raise Fail "compOpr2.function1"
+  | (_, Fs _) => raise Fail "compOpr2.function2"
 
 fun compileAst e =
     let fun comp G e k =
@@ -64,7 +84,7 @@ fun compileAst e =
             | LambE e =>
               k(Fs (fn [x] => compLam1 G e x
                      | [x,y] => compLam2 G e (x,y)
-                     | _ => raise Fail "comp.LambE: expecting one or two arguments to be passed to lambda"),
+                     | l => raise Fail ("comp.LambE: expecting one or two arguments to be passed to lambda: " ^ Int.toString(List.length l))),
                 emp)
             | IdE(Var v) => compId G (Var v) k
             | IdE(Symb L.Omega) => compId G (Symb L.Omega) k
@@ -130,6 +150,10 @@ fun compileAst e =
                                       f(Is x,Is y) >>= (fn Is z => ret z
                                                          | _ => raise Fail "Opr1E"))
                                   (I 0) x >>= (fn v => ret(Is v))
+                   | Ads x => red (fn (x,y) =>
+                                      f(Ds x,Ds y) >>= (fn Ds z => ret z
+                                                         | _ => raise Fail "Opr1E"))
+                                  (D 0.0) x >>= (fn v => ret(Ds v))
                    | _ => raise Fail "comp.LambE: expecting one or two arguments to be passed to lambda")
               end
             | _ => raise Fail ("compFun1: expression not supported: " ^ pr_exp e0)
@@ -144,25 +168,14 @@ fun compileAst e =
             | IdE(Symb L.Drop) => compOpr2_i8a2a APL.drop APL.drop
             | IdE(Symb L.Rot) => compOpr2_i8a2a APL.rotate APL.rotate
             | IdE(Symb L.Cat) => compOpr2_a8a2aM catenate catenate
-            | IdE(Symb L.Add) => compOpr2 (op +)
-            | IdE(Symb L.Sub) => compOpr2 (op -)
-            | IdE(Symb L.Times) => compOpr2 (op *)
-            | IdE(Symb L.Div) => compOpr2 (op /)
-            | IdE(Symb L.Max) => compOpr2 (uncurry max)
-            | IdE(Symb L.Min) => compOpr2 (uncurry min)
+            | IdE(Symb L.Add) => compOpr2 (op +) (op +)
+            | IdE(Symb L.Sub) => compOpr2 (op -) (op -)
+            | IdE(Symb L.Times) => compOpr2 (op *) (op *)
+            | IdE(Symb L.Div) => compOpr2 (op /) (op /)
+            | IdE(Symb L.Max) => compOpr2 (uncurry max) (uncurry max)
+            | IdE(Symb L.Min) => compOpr2 (uncurry min) (uncurry min)
             | LambE e1 => compLam2 G e1
             | _ => raise Fail ("compFun2: expression not supported: " ^ pr_exp e0)            
-        and compOpr2 opr =
-         fn (Is i1, Is i2) => ret(Is(opr(i1,i2)))
-          | (Ais a1, Ais a2) => sum Int opr a1 a2 >>= (fn x => ret(Ais x))
-          | (Ais a1, Is i2) => ret(Ais(mmap(fn x => opr(x,i2))a1))
-          | (Is i1, Ais a2) => ret(Ais(mmap(fn x => opr(i1,x))a2))
-          | (Ds _, _) => raise Fail "compOpr2.double1"
-          | (_, Ds _) => raise Fail "compOpr2.double2"
-          | (Ads _, _) => raise Fail "compOpr2.double array1"
-          | (_, Ads _) => raise Fail "compOpr2.double array2"
-          | (Fs _,_) => raise Fail "compOpr2.function1"
-          | (_, Fs _) => raise Fail "compOpr2.function2"
         and compId G id k =
             case lookup G id of
               SOME x => k(x,emp)
@@ -171,10 +184,11 @@ fun compileAst e =
         val c' = 
             c >>= (fn s =>
                       case s of
-                        Ais im => red (ret o op +) (I 0) im
-                      | Is i => ret i
+                        Ais im => red (ret o op +) (I 0) im >>= (fn x => ret (i2d x))
+                      | Is i => ret (i2d i)
+                      | Ds d => ret d
                       | _ => raise Fail "expecting array")
-    in runM Type.Int c'
+    in runM Type.Double c'
     end
 end
 

@@ -17,15 +17,6 @@ Here is what happens when the program is compiled and executed:
 
     mael@gaffy:~/gits/aplcompile$ ./test test.apl 
     Reading file: test.apl
-    Program lexed:
-     Id(signal) Larrow Lbra 5 Add Omega Rbra Newline Add Slash Id(signal) Iota 30 Newline Newline
-    Parsing tokens...
-    AST is
-     [Assign(signal,Lam(Unres[5,Add,Omega])),Unres[Add,Slash,signal,Iota,30]]
-    Resolving:
-     Assign(signal,Lam(Unres[5,Add,Omega]))
-    Resolving:
-     Unres[Add,Slash,signal,Iota,30]
     Parse success:
      [Assign(signal,Lam(App2(Add,5,Omega))),App1(Opr1(Slash,Add),App1(signal,App1(Iota,30)))]
     Evaluating
@@ -37,6 +28,27 @@ Here is what happens when the program is compiled and executed:
       return n0;
     }
     Result is 615
+
+Here is the result of compiling the following program:
+
+```apl
+diff ← {1↓⍵−¯1⌽⍵}
+signal ← {¯50⌈50⌊50×(diff 0,⍵)÷0.01+⍵}
++/ signal ⍳ 100
+```
+    mael@gaffy:~/gits/aplcompile$ ./test signal.apl 
+    Reading file: signal.apl
+    Parse success:
+     [Assign(diff,Lam(App2(Drop,1,App2(Sub,Omega,App2(Rot,-1,Omega))))),Assign(signal,Lam(App2(Max,-50,App2(Min,50,App2(Times,50,App2(Div,App1(diff,App2(Cat,0,Omega)),App2(Add,0.01,Omega))))))),App1(Opr1(Slash,Add),App1(signal,App1(Iota,100)))]
+    Evaluating
+    double kernel(int n3) {
+      double n2 = 0.0;
+      for (int n7 = 0; n7 < 100; n7++) {
+	n2 = (max(i2d(-50),min(i2d(50),(i2d(50)*((i2d((1+n7))-((n7<1) ? i2d(0) : i2d(n7)))/(0.01+i2d((1+n7)))))))+n2);
+      }
+      return n2;
+    }
+    Result is 258.557340366
 
 ## Try it!
 
