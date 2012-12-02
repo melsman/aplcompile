@@ -23,7 +23,7 @@ Here is what happens when the program is compiled and executed:
     int kernel(int n1) {
       int n0 = 0;
       for (int n5 = 0; n5 < 30; n5++) {
-	n0 = ((6+n0)+n5);
+        n0 = ((6+n0)+n5);
       }
       return n0;
     }
@@ -46,7 +46,7 @@ signal ← {¯50⌈50⌊50×(diff 0,⍵)÷0.01+⍵}
     double kernel(int n3) {
       double n2 = 0.0;
       for (int n7 = 0; n7 < 100; n7++) {
-	n2 = (max(i2d(-50),min(i2d(50),(i2d(50)*((i2d((1+n7))-((n7<1) ? i2d(0) : i2d(n7)))/(0.01+i2d((1+n7)))))))+n2);
+        n2 = (max(i2d(-50),min(i2d(50),(i2d(50)*((i2d((1+n7))-((n7<1) ? i2d(0) : i2d(n7)))/(0.01+i2d((1+n7)))))))+n2);
       }
       return n2;
     }
