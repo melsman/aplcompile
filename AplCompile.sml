@@ -2,6 +2,13 @@ structure AplCompile = struct
 
 fun prln s = print(s ^ "\n")
 
+fun minInt() = case Int.minInt of
+                 SOME i => i
+               | NONE => raise Fail "no minInt"
+fun maxInt() = case Int.maxInt of
+                 SOME i => i
+               | NONE => raise Fail "no maxInt"
+
 local
   open ILmoa
 
@@ -32,6 +39,20 @@ local
   fun StoI s = Int.fromString(repair s)
   fun StoD s = Real.fromString(repair s)
 in
+
+datatype 'a identity_item = Lii of 'a
+                          | Rii of 'a
+                          | LRii of 'a
+                          | NOii
+
+type id_item = int identity_item * real identity_item * bool identity_item
+
+fun id_item ii =
+    case ii of
+      Lii v => v
+    | Rii v => v
+    | LRii v => v
+    | NOii => raise Fail "id_item: no identity item for function"
 
 fun compOpr2_i8a2a opr1 opr2 =
  fn (Is i1, Ais a2) => ret(Ais(opr1 i1 a2))
@@ -89,6 +110,7 @@ fun compileAst e =
             | IdE(Var v) => compId G (Var v) k
             | IdE(Symb L.Omega) => compId G (Symb L.Omega) k
             | IdE(Symb L.Alpha) => compId G (Symb L.Alpha) k
+            | IdE(Symb L.Zilde) => k (Ais (zilde Int),emp)
             | VecE es =>
               (case List.foldr (fn (IntE s,SOME acc) =>
                                    (case StoI s of
@@ -118,7 +140,7 @@ fun compileAst e =
                  f s >>= (fn s' => k(s',G')))
               end
             | App2E(e0,e1,e2) =>
-              let val f = compFun2 G e0
+              let val (f,_) = compFun2 G e0
               in comp G e2 (fn (s2,G2) =>
                  comp (G++G2) e1 (fn (s1,G1) =>
                  f(s1,s2) >>= (fn s' => k(s',G2++G1))))
@@ -145,37 +167,39 @@ fun compileAst e =
                 | _ => raise Fail "compFun1: iota expects integer argument")
             | LambE e1 => compLam1 G e1
             | Opr1E(L.Slash,f) =>
-              let val f = compFun2 G f
+              let val (f,ii) = compFun2 G f
               in (fn Ais x => red (fn (x,y) =>
                                       f(Is x,Is y) >>= (fn Is z => ret z
                                                          | _ => raise Fail "Opr1E"))
-                                  (I 0) x >>= (fn v => ret(Is v))
+                                  (I(id_item(#1 ii))) x >>= (fn v => ret(Is v))
                    | Ads x => red (fn (x,y) =>
                                       f(Ds x,Ds y) >>= (fn Ds z => ret z
                                                          | _ => raise Fail "Opr1E"))
-                                  (D 0.0) x >>= (fn v => ret(Ds v))
+                                  (D(id_item(#2 ii))) x >>= (fn v => ret(Ds v))
                    | _ => raise Fail "comp.LambE: expecting one or two arguments to be passed to lambda")
               end
             | _ => raise Fail ("compFun1: expression not supported: " ^ pr_exp e0)
         and compFun2 G e0 =
-            case e0 of
-              IdE(Var v) =>
-              (case lookup G (Var v) of
-                 SOME (Fs f) => (fn (s1,s2) => f [s1,s2])
-               | SOME _ => raise Fail ("comp: variable " ^ v ^ " is not a function")
-               | NONE => raise Fail ("comp: no variable " ^ v ^ " in the environment"))
-            | IdE(Symb L.Take) => compOpr2_i8a2a APL.take APL.take
-            | IdE(Symb L.Drop) => compOpr2_i8a2a APL.drop APL.drop
-            | IdE(Symb L.Rot) => compOpr2_i8a2a APL.rotate APL.rotate
-            | IdE(Symb L.Cat) => compOpr2_a8a2aM catenate catenate
-            | IdE(Symb L.Add) => compOpr2 (op +) (op +)
-            | IdE(Symb L.Sub) => compOpr2 (op -) (op -)
-            | IdE(Symb L.Times) => compOpr2 (op *) (op *)
-            | IdE(Symb L.Div) => compOpr2 (op /) (op /)
-            | IdE(Symb L.Max) => compOpr2 (uncurry max) (uncurry max)
-            | IdE(Symb L.Min) => compOpr2 (uncurry min) (uncurry min)
-            | LambE e1 => compLam2 G e1
-            | _ => raise Fail ("compFun2: expression not supported: " ^ pr_exp e0)            
+            let val noii = (NOii,NOii,NOii)  (* see page 777 in Legrand, 1st Edition 2009, Mastering Dyalog APL *)
+            in case e0 of
+                 IdE(Var v) =>
+                 (case lookup G (Var v) of
+                    SOME (Fs f) => (fn (s1,s2) => f [s1,s2], noii)
+                  | SOME _ => raise Fail ("comp: variable " ^ v ^ " is not a function")
+                  | NONE => raise Fail ("comp: no variable " ^ v ^ " in the environment"))
+               | IdE(Symb L.Take) => (compOpr2_i8a2a APL.take APL.take, noii)
+               | IdE(Symb L.Drop) => (compOpr2_i8a2a APL.drop APL.drop, noii)
+               | IdE(Symb L.Rot) => (compOpr2_i8a2a APL.rotate APL.rotate, noii)
+               | IdE(Symb L.Cat) => (compOpr2_a8a2aM catenate catenate, noii)
+               | IdE(Symb L.Add) => (compOpr2 (op +) (op +), (LRii 0, LRii 0.0, NOii))
+               | IdE(Symb L.Sub) => (compOpr2 (op -) (op -), (Rii 0, Rii 0.0, NOii))
+               | IdE(Symb L.Times) => (compOpr2 (op *) (op *), (LRii 1, LRii 1.0, NOii))
+               | IdE(Symb L.Div) => (compOpr2 (op /) (op /), (Rii 1, Rii 1.0, NOii))
+               | IdE(Symb L.Max) => (compOpr2 (uncurry max) (uncurry max), (LRii(minInt()), LRii Real.negInf, NOii))
+               | IdE(Symb L.Min) => (compOpr2 (uncurry min) (uncurry min), (LRii(maxInt()), LRii Real.posInf, NOii))
+               | LambE e1 => (compLam2 G e1, noii)
+               | _ => raise Fail ("compFun2: expression not supported: " ^ pr_exp e0)            
+            end
         and compId G id k =
             case lookup G id of
               SOME x => k(x,emp)
