@@ -130,10 +130,6 @@ fun compileAst e =
                                      end) [] es of
                    [] => raise Fail "expecting a non-empty sequence of integers or doubles"
                  | ds => k(Ads(vec(fromList ds)),emp))
-            | App0E(e0) =>
-              let val f = compFun0 G e0
-              in f [] >>= (fn s' => k(s',emp))
-              end
             | App1E(e0,e1) =>
               let val f = compFun1 G e0
               in comp G e1 (fn (s,G') =>
@@ -166,7 +162,7 @@ fun compileAst e =
               (fn Is i => ret(Ais(iota i))
                 | _ => raise Fail "compFun1: iota expects integer argument")
             | LambE e1 => compLam1 G e1
-            | Opr1E(L.Slash,f) =>
+            | App1E(IdE(Symb L.Slash),f) =>
               let val (f,ii) = compFun2 G f
               in (fn Ais x => red (fn (x,y) =>
                                       f(Is x,Is y) >>= (fn Is z => ret z
