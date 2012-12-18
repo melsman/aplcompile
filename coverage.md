@@ -17,7 +17,7 @@ Currently, only integers and doubles are supported.
 <tr><td>- A</td><td>Negation</td><td>Returns the array A with all values negated.</td><td></td></tr>
 <tr><td>÷ A</td><td>Reciprocal</td><td>Returns the array A with elements being the reciprocal values of the values in A.</td><td></td></tr>
 <tr><td>× A</td><td>Sign</td><td>Returns the array A with elements being -1 for negative values in A and 1 for positive values in A.</td><td></td></tr>
-<tr><td>⍉ A</td><td>Transpose</td><td>Returns the transposed version of A.</td><td>Supported only for arrays A with ⍴ A < 3.</td></tr>
+<tr><td>⍉ A</td><td>Transpose</td><td>Returns the transposed version of A.</td><td>Supported only for arrays A with ⍴ ⍴ A less than 3.</td></tr>
 </table>
 
 ### Dyadic Functions
