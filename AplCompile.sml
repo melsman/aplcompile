@@ -82,6 +82,8 @@ fun compOpr2_a8a2aM opr1 opr2 =
   | (Ads a1, Ads a2) => M(opr2 a1 a2 >>= (fn a => ret(Ads a)))
   | (Is i1,e2) => compOpr2_a8a2aM opr1 opr2 (Ais(scl i1),e2)
   | (e1, Is i2) => compOpr2_a8a2aM opr1 opr2 (e1,Ais(scl i2))
+  | (Ds d1,e2) => compOpr2_a8a2aM opr1 opr2 (Ads(scl d1),e2)
+  | (e1, Ds d2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(scl d2))
   | (Ais a1, e2) => compOpr2_a8a2aM opr1 opr2 (Ads(mmap i2d a1),e2)
   | (e1, Ais a2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(mmap i2d a2))
   | _ => raise Fail "compOpr2_a8a2aM: expecting two similar arrays as arguments"
@@ -211,14 +213,16 @@ fun compileAst e =
                                   | _ => raise Fail "comp.AppOpr1E: expecting operator as function"))
             | IdE(Symb L.Slash) => 
               k(Fs (fn [Fs (f,ii)] =>
-                       rett(Fs (fn [Ais x] => M(red (fn (x,y) =>
+                       rett(Fs (fn [Ais x] => M(APL.reduce (fn (x,y) =>
                                                         subM(f[Is x,Is y] >>>= (fn Is z => rett z
                                                                                  | _ => raise Fail "comp.Slash: expecting integer as result")))
-                                                    (I(id_item_int ii)) x) >>>= (fn v => rett(Is v))
-                                 | [Ads x] => M(red (fn (x,y) =>
+                                                    (I(id_item_int ii)) x Is Ais)
+                                 | [Ads x] => M(APL.reduce (fn (x,y) =>
                                                         subM(f[Ds x,Ds y] >>>= (fn Ds z => rett z
                                                                                  | _ => raise Fail "comp.Slash: expecting double as result")))
-                                                    (D(id_item_double ii)) x) >>>= (fn v => rett(Ds v))
+                                                    (D(id_item_double ii)) x Ds Ads)
+                                 | [Ds x] => S(Ds x)
+                                 | [Is x] => S(Is x)
                                  | _ => raise Fail "comp.Slash: expecting array",
                                 noii))
                      | _ => raise Fail "comp.Slash: expecting function as operator argument",
@@ -243,6 +247,9 @@ fun compileAst e =
                 emp)
             | IdE(Symb L.Iota) => compPrimFunM k (fn Is i => S(Ais(iota i))
                                                    | _ => raise Fail "comp.Iota: expecting integer argument")
+            | IdE(Symb L.Trans) => compPrimFunM k (fn Ais a => S(Ais(APL.trans a))
+                                                    | Ads a => S(Ads(APL.trans a))
+                                                    | _ => raise Fail "comp.Trans: expecting array")
             | IdE(Symb L.Rho) => compPrimFunMD k (fn Ais a => S(Ais(APL.shape a))
                                                    | Ads a => S(Ais(APL.shape a))
                                                    | _ => raise Fail "comp.Rho.shape expects an array",

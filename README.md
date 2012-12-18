@@ -4,6 +4,8 @@ This software implements an APL compiler in Standard ML.
 
 See [the compilation scheme](aplcompile/blob/master/comp.md).
 
+See also the [coverage page](aplcompile/blob/master/coverage.md).
+
 ## An example
 
 Here is the result of compiling and running the following program:
@@ -41,12 +43,12 @@ signal ← {¯50⌈50⌊50×(diff 0,⍵)÷0.01+⍵}
     mael@gaffy:~/gits/aplcompile$ ./test signal.apl 
     Reading file: signal.apl
     Parse success:
-     [Assign(diff,Lam(App2(Drop,1,App2(Sub,Omega,App2(Rot,-1,Omega))))),Assign(signal,Lam(App2(Max,-50,App2(Min,50,App2(Times,50,App2(Div,App1(diff,App2(Cat,0,Omega)),App2(Add,0.01,Omega))))))),App1(Opr1(Slash,Add),App1(signal,App1(Iota,100)))]
+     [Assign(diff,Lam[0,1](App2(Drop,1,App2(Sub,Omega,App2(Rot,-1,Omega))))),Assign(signal,Lam[0,1](App2(Max,-50,App2(Min,50,App2(Times,50,App2(Div,App1(diff,App2(Cat,0,Omega)),App2(Add,0.01,Omega))))))),App1(AppOpr1[1](Slash,Add),App1(signal,App1(Iota,100)))]
     Evaluating
     double kernel(int n3) {
       double n2 = 0.0;
       for (int n7 = 0; n7 < 100; n7++) {
-        n2 = (max(i2d(-50),min(i2d(50),(i2d(50)*((i2d((1+n7))-((n7<1) ? i2d(0) : i2d(n7)))/(0.01+i2d((1+n7)))))))+n2);
+	n2 = (max(-50.0,min(50.0,(50.0*(i2d(((1+n7)-((n7<1) ? 0 : n7)))/(0.01+i2d((1+n7)))))))+n2);
       }
       return n2;
     }
