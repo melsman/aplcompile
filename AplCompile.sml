@@ -228,6 +228,22 @@ fun compileAst e =
                      | _ => raise Fail "comp.Slash: expecting function as operator argument",
                     noii), 
                 emp)
+            | IdE(Symb L.Dot) => compPrimFunD k (fn (Ais a1, Ais a2) => 
+                                                    M(APL.prod (ret o op +) (op * ) (I(id_item_int noii)) a1 a2 Is Ais)
+                                                  | _ => raise Fail "comp.Dot: expecting two arrays") noii
+(*
+            | IdE(Symb L.Dot) => 
+              k(Fs (fn [Fs (f,ii)] =>
+                       rett(Fs (fn [Ais a1, Ais a2] => M(APL.prod (fn (x,y) =>  
+                                                                      subM(f[Is x,Is y] >>>= (fn Is z => rett z
+                                                                                               | _ => raise Fail "comp.Dot: expecting int as result"))) 
+                                                                  (op +) (I(id_item_int ii)) a1 a2 Is Ais)
+                                 | _ => raise Fail "comp.Dot: expecting two arrays",
+                                noii))
+                     | _ => raise Fail "comp.Dot: expecting function as operator argument",
+                    noii), 
+                emp)
+*)
             | IdE(Symb L.Each) => 
               k(Fs (fn [Fs (f,_)] =>
                        let exception No

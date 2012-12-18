@@ -17,8 +17,8 @@ signal ← {5+⍵}
 
 Here is what happens when the program is compiled and executed:
 
-    mael@gaffy:~/gits/aplcompile$ ./test test.apl 
-    Reading file: test.apl
+    mael@gaffy:~/gits/aplcompile$ ./aplc tests/test.apl 
+    Reading file: tests/test.apl
     Parse success:
      [Assign(signal,Lam(App2(Add,5,Omega))),App1(Opr1(Slash,Add),App1(signal,App1(Iota,30)))]
     Evaluating
@@ -40,8 +40,8 @@ diff ← {1↓⍵−¯1⌽⍵}
 signal ← {¯50⌈50⌊50×(diff 0,⍵)÷0.01+⍵}
 +/ signal ⍳ 100
 ```
-    mael@gaffy:~/gits/aplcompile$ ./test signal.apl 
-    Reading file: signal.apl
+    mael@gaffy:~/gits/aplcompile$ ./aplc tests/signal.apl 
+    Reading file: tests/signal.apl
     Parse success:
      [Assign(diff,Lam[0,1](App2(Drop,1,App2(Sub,Omega,App2(Rot,-1,Omega))))),Assign(signal,Lam[0,1](App2(Max,-50,App2(Min,50,App2(Times,50,App2(Div,App1(diff,App2(Cat,0,Omega)),App2(Add,0.01,Omega))))))),App1(AppOpr1[1](Slash,Add),App1(signal,App1(Iota,100)))]
     Evaluating
@@ -66,11 +66,13 @@ next to the `aplcompile` sources.
 
 You also need a Standard ML compiler (e.g., [Mlton](http://www.mlton.org/)).
 
-Then simply write `make test` followed by `./test` in your shell.
+Then simply write `make aplc` followed by `./aplc` in your shell.
 
 ## Limitations
 
 Todo: Operators and improved error handling.
+
+See also the [coverage page](aplcompile/blob/master/coverage.md).
 
 ## License
 

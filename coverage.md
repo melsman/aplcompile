@@ -1,4 +1,4 @@
-## Coverage of APL Compiler
+## Coverage of the APL Compiler `aplc`
 
 This page documents the functionality of the APL compiler.
 
