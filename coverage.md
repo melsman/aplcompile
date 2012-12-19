@@ -10,7 +10,7 @@ Currently, only integers and doubles are supported.
 
 <table>
 <tr><th>Expression</th><th>Name</th><th>Meaning</th><th>Notes</th></tr>
-<tr><td>⍴ A</td><td>Shape</td><td>Returns the shape of the array A.</td><td></td></tr>
+<tr><td>⍴ A</td><td>Shape</td><td>Returns the shape of the array A as a vector of integers.</td><td></td></tr>
 <tr><td>⍳ N</td><td>Iota</td><td>Returns a vector of length N with values [1,...,N].</td><td></td></tr>
 <tr><td>, A</td><td>Ravel</td><td>Returns the vector of values appearing in A in row-major order.</td><td></td></tr>
 <tr><td>+ A</td><td>Identity</td><td>Returns A.</td><td></td></tr>
