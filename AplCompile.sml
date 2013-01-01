@@ -10,7 +10,7 @@ fun maxInt() = case Int.maxInt of
                | NONE => raise Fail "no maxInt"
 
 local
-  open ILmoa
+  open ILapl
 
   datatype 'a identity_item = Lii of 'a
                             | Rii of 'a
@@ -84,8 +84,8 @@ fun compOpr2_a8a2aM opr1 opr2 =
   | (e1, Is i2) => compOpr2_a8a2aM opr1 opr2 (e1,Ais(scl i2))
   | (Ds d1,e2) => compOpr2_a8a2aM opr1 opr2 (Ads(scl d1),e2)
   | (e1, Ds d2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(scl d2))
-  | (Ais a1, e2) => compOpr2_a8a2aM opr1 opr2 (Ads(mmap i2d a1),e2)
-  | (e1, Ais a2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(mmap i2d a2))
+  | (Ais a1, e2) => compOpr2_a8a2aM opr1 opr2 (Ads(each i2d a1),e2)
+  | (e1, Ais a2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(each i2d a2))
   | _ => raise Fail "compOpr2_a8a2aM: expecting two similar arrays as arguments"
 
 fun compOpr2 opr oprd =
@@ -93,35 +93,35 @@ fun compOpr2 opr oprd =
   | (Ds d1, Ds d2) => S(Ds(oprd(d1,d2)))
   | (Ais a1, Ais a2) => M(sum Int opr a1 a2 >>= (fn x => ret(Ais x)))
   | (Ads a1, Ads a2) => M(sum Double oprd a1 a2 >>= (fn x => ret(Ads x)))
-  | (Ais a1, Is i2) => S(Ais(mmap(fn x => opr(x,i2))a1))
-  | (Ads a1, Ds d2) => S(Ads(mmap(fn x => oprd(x,d2))a1))
-  | (Is i1, Ais a2) => S(Ais(mmap(fn x => opr(i1,x))a2))
-  | (Ds d1, Ads a2) => S(Ads(mmap(fn x => oprd(d1,x))a2))
+  | (Ais a1, Is i2) => S(Ais(each(fn x => opr(x,i2))a1))
+  | (Ads a1, Ds d2) => S(Ads(each(fn x => oprd(x,d2))a1))
+  | (Is i1, Ais a2) => S(Ais(each(fn x => opr(i1,x))a2))
+  | (Ds d1, Ads a2) => S(Ads(each(fn x => oprd(d1,x))a2))
   | (Is i1, e2) => compOpr2 opr oprd (Ds(i2d i1),e2)
   | (e1, Is i2) => compOpr2 opr oprd (e1,Ds(i2d i2))
-  | (Ais a1, e2) => compOpr2 opr oprd (Ads(mmap i2d a1),e2)
-  | (e1, Ais a2) => compOpr2 opr oprd (e1,Ads(mmap i2d a2))
+  | (Ais a1, e2) => compOpr2 opr oprd (Ads(each i2d a1),e2)
+  | (e1, Ais a2) => compOpr2 opr oprd (e1,Ads(each i2d a2))
   | _ => raise Fail "compOpr2.function"
 
 fun compOpr1 opr oprd =
  fn Is i => S(Is(opr i))
   | Ds d => S(Ds(oprd d))
-  | Ais a => S(Ais(mmap opr a))
-  | Ads a => S(Ads(mmap oprd a))
+  | Ais a => S(Ais(each opr a))
+  | Ads a => S(Ads(each oprd a))
   | _ => raise Fail "compOpr1.function"
 
 fun compOpr1d opr =
  fn Is i => S(Ds(opr(i2d i)))
   | Ds d => S(Ds(opr d))
-  | Ais a => S(Ads(mmap (opr o i2d) a))
-  | Ads a => S(Ads(mmap opr a))
+  | Ais a => S(Ads(each (opr o i2d) a))
+  | Ads a => S(Ads(each opr a))
   | _ => raise Fail "compOpr1d.function"
 
 fun compOpr1i opr oprd =
  fn Is i => S(Is(opr i))
   | Ds d => S(Is(oprd d))
-  | Ais a => S(Ais(mmap opr a))
-  | Ads a => S(Ais(mmap oprd a))
+  | Ais a => S(Ais(each opr a))
+  | Ads a => S(Ais(each oprd a))
   | _ => raise Fail "compOpr1i.function"
 
 fun signi x = If(x < I 0,I ~1, I 1)
@@ -213,11 +213,11 @@ fun compileAst e =
                                   | _ => raise Fail "comp.AppOpr1E: expecting operator as function"))
             | IdE(Symb L.Slash) => 
               k(Fs (fn [Fs (f,ii)] =>
-                       rett(Fs (fn [Ais x] => M(APL.reduce (fn (x,y) =>
+                       rett(Fs (fn [Ais x] => M(reduce (fn (x,y) =>
                                                         subM(f[Is x,Is y] >>>= (fn Is z => rett z
                                                                                  | _ => raise Fail "comp.Slash: expecting integer as result")))
                                                     (I(id_item_int ii)) x Is Ais)
-                                 | [Ads x] => M(APL.reduce (fn (x,y) =>
+                                 | [Ads x] => M(reduce (fn (x,y) =>
                                                         subM(f[Ds x,Ds y] >>>= (fn Ds z => rett z
                                                                                  | _ => raise Fail "comp.Slash: expecting double as result")))
                                                     (D(id_item_double ii)) x Ds Ads)
@@ -229,12 +229,12 @@ fun compileAst e =
                     noii), 
                 emp)
             | IdE(Symb L.Dot) => compPrimFunD k (fn (Ais a1, Ais a2) => 
-                                                    M(APL.prod (ret o op +) (op * ) (I(id_item_int noii)) a1 a2 Is Ais)
+                                                    M(prod (ret o op +) (op * ) (I(id_item_int noii)) a1 a2 Is Ais)
                                                   | _ => raise Fail "comp.Dot: expecting two arrays") noii
 (*
             | IdE(Symb L.Dot) => 
               k(Fs (fn [Fs (f,ii)] =>
-                       rett(Fs (fn [Ais a1, Ais a2] => M(APL.prod (fn (x,y) =>  
+                       rett(Fs (fn [Ais a1, Ais a2] => M(prod (fn (x,y) =>  
                                                                       subM(f[Is x,Is y] >>>= (fn Is z => rett z
                                                                                                | _ => raise Fail "comp.Dot: expecting int as result"))) 
                                                                   (op +) (I(id_item_int ii)) a1 a2 Is Ais)
@@ -248,10 +248,10 @@ fun compileAst e =
               k(Fs (fn [Fs (f,_)] =>
                        let exception No
                            fun tryInt g x =
-                               mmap (fn x => case f[g x] of S(Is v) => v
+                               each (fn x => case f[g x] of S(Is v) => v
                                                            | _ => raise No) x
                            fun tryDouble g x =
-                               mmap (fn x => case f[g x] of S(Ds v) => v
+                               each (fn x => case f[g x] of S(Ds v) => v
                                                           | _ => raise Fail "Not Ds") x
                        in rett(Fs (fn [Ais x] => (S(Ais(tryInt Is x)) handle No => S(Ads(tryDouble Is x)))
                                     | [Ads x] => (S(Ais(tryInt Ds x)) handle No => S(Ads(tryDouble Ds x)))
@@ -263,22 +263,22 @@ fun compileAst e =
                 emp)
             | IdE(Symb L.Iota) => compPrimFunM k (fn Is i => S(Ais(iota i))
                                                    | _ => raise Fail "comp.Iota: expecting integer argument")
-            | IdE(Symb L.Trans) => compPrimFunM k (fn Ais a => S(Ais(APL.trans a))
-                                                    | Ads a => S(Ads(APL.trans a))
+            | IdE(Symb L.Trans) => compPrimFunM k (fn Ais a => S(Ais(transpose a))
+                                                    | Ads a => S(Ads(transpose a))
                                                     | _ => raise Fail "comp.Trans: expecting array")
-            | IdE(Symb L.Rho) => compPrimFunMD k (fn Ais a => S(Ais(APL.shape a))
-                                                   | Ads a => S(Ais(APL.shape a))
+            | IdE(Symb L.Rho) => compPrimFunMD k (fn Ais a => S(Ais(vec(shape a)))
+                                                   | Ads a => S(Ais(vec(shape a)))
                                                    | _ => raise Fail "comp.Rho.shape expects an array",
-                                                  fn (Ais a1, Ais a2) => M(APL.reshape a1 a2) >>>= (fn a => rett(Ais a))
-                                                   | (Ais a1, Ads a2) => M(APL.reshape a1 a2) >>>= (fn a => rett(Ads a))
+                                                  fn (Ais a1, Ais a2) => M(reshape (rav0 a1) a2) >>>= (fn a => rett(Ais a))
+                                                   | (Ais a1, Ads a2) => M(reshape (rav0 a1) a2) >>>= (fn a => rett(Ads a))
                                                    | _ => raise Fail "comp.Rho.reshape expects arrays") noii
             | IdE(Symb L.Cat) => compPrimFunMD k (fn Ais a => S(Ais(rav a))
                                                    | Ads a => S(Ads(rav a))
                                                    | _ => raise Fail "comp.Cat.rav expects an array",
                                                   compOpr2_a8a2aM catenate catenate) noii
-            | IdE(Symb L.Take) => compPrimFunD k (compOpr2_i8a2a APL.take APL.take) noii
-            | IdE(Symb L.Drop) => compPrimFunD k (compOpr2_i8a2a APL.drop APL.drop) noii
-            | IdE(Symb L.Rot) => compPrimFunD k (compOpr2_i8a2a APL.rotate APL.rotate) noii
+            | IdE(Symb L.Take) => compPrimFunD k (compOpr2_i8a2a take take) noii
+            | IdE(Symb L.Drop) => compPrimFunD k (compOpr2_i8a2a drop drop) noii
+            | IdE(Symb L.Rot) => compPrimFunD k (compOpr2_i8a2a rotate rotate) noii
             | IdE(Symb L.Add) => compPrimFunMD k (S,
                                                   compOpr2 (op +) (op +)) noii
             | IdE(Symb L.Sub) => compPrimFunMD k (compOpr1 ~ ~,
@@ -354,8 +354,8 @@ fun compileAndRun s =
          (prln("Parse success:\n " ^ AplAst.pr_exp e);
           let val p = compileAst e
               val () = prln("Evaluating")
-              val v = ILmoa.eval p ILmoa.Uv
-          in prln("Result is " ^ ILmoa.ppV v)
+              val v = ILapl.eval p ILapl.Uv
+          in prln("Result is " ^ ILapl.ppV v)
           end)
        | NONE => prln "Parse error."
     end
