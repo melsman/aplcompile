@@ -1,5 +1,7 @@
 structure AplCompile = struct
 
+val outfile : string option ref = ref NONE
+
 fun prln s = print(s ^ "\n")
 
 fun minInt() = case Int.minInt of
@@ -210,7 +212,14 @@ fun compileAst e =
               comp (G++G') e0 (fn (f,G'') =>
                                   case f of
                                     Fs (f,_) => f [s] >>>= (fn s' => k(s',G'++G''))
-                                  | _ => raise Fail "comp.AppOpr1E: expecting operator as function"))
+                                  | _ => raise Fail "comp.AppOpr1E: expecting function"))
+            | AppOpr2E(_,e0,e1,e2) =>
+              comp G e2 (fn (s2,G2) =>
+              comp (G++G2) e1 (fn (s1,G1) =>
+              comp (G++G2++G1) e0 (fn (f,G0) =>
+                                      case f of
+                                        Fs (f,_) => f [s1,s2] >>>= (fn s => k(s,G2++G1++G0))
+                                      | _ => raise Fail "comp.AppOpr2E: expecting function")))
             | IdE(Symb L.Slash) => 
               k(Fs (fn [Fs (f,ii)] =>
                        rett(Fs (fn [Ais x] => M(reduce (fn (x,y) =>
@@ -228,22 +237,18 @@ fun compileAst e =
                      | _ => raise Fail "comp.Slash: expecting function as operator argument",
                     noii), 
                 emp)
-            | IdE(Symb L.Dot) => compPrimFunD k (fn (Ais a1, Ais a2) => 
-                                                    M(prod (ret o op +) (op * ) (I(id_item_int noii)) a1 a2 Is Ais)
-                                                  | _ => raise Fail "comp.Dot: expecting two arrays") noii
-(*
-            | IdE(Symb L.Dot) => 
-              k(Fs (fn [Fs (f,ii)] =>
-                       rett(Fs (fn [Ais a1, Ais a2] => M(prod (fn (x,y) =>  
-                                                                      subM(f[Is x,Is y] >>>= (fn Is z => rett z
-                                                                                               | _ => raise Fail "comp.Dot: expecting int as result"))) 
-                                                                  (op +) (I(id_item_int ii)) a1 a2 Is Ais)
+            | IdE(Symb L.Dot) =>
+              k(Fs (fn [Fs (f1,ii),Fs(f2,_)] =>
+                       rett(Fs (fn [Ais a1, Ais a2] => 
+                                   M(prod (fn (x,y) =>  
+                                              subM(f1[Is x,Is y] >>>= (fn Is z => rett z
+                                                                        | _ => raise Fail "comp.Dot: expecting int as result")))
+                                          (op * ) (I(id_item_int noii)) a1 a2 Is Ais)
                                  | _ => raise Fail "comp.Dot: expecting two arrays",
                                 noii))
-                     | _ => raise Fail "comp.Dot: expecting function as operator argument",
-                    noii), 
+                     | _ => raise Fail "comp.Dot: expecting two functions",
+                    noii),
                 emp)
-*)
             | IdE(Symb L.Each) => 
               k(Fs (fn [Fs (f,_)] =>
                        let exception No
@@ -344,6 +349,25 @@ fun compileAst e =
     end
 end
 
+fun outmain outln =
+    ( outln "int main() {"
+    ; outln "  printf(\"%f\\n\", kernel(0));"
+    ; outln "  return 0;"
+    ; outln "}")
+
+fun outprog ofile p =
+    let val body = ILapl.pp_prog p
+        val os = TextIO.openOut ofile
+        fun outln s = TextIO.output (os, s^"\n")
+    in outln "#include <stdio.h>"
+     ; outln "#include <stdlib.h>"
+     ; outln "#include <math.h>"
+     ; outln "#include \"apl.h\""
+     ; outln body
+     ; outmain outln
+     ; TextIO.closeOut os
+    end
+
 fun compileAndRun s =
     let val ts = AplLex.lex s
         val () = prln "Program lexed:"
@@ -353,6 +377,10 @@ fun compileAndRun s =
          SOME (e,_) => 
          (prln("Parse success:\n " ^ AplAst.pr_exp e);
           let val p = compileAst e
+              val () =
+                  case !outfile of
+                    SOME ofile => outprog ofile p
+                  | NONE => ()
               val () = prln("Evaluating")
               val v = ILapl.eval p ILapl.Uv
           in prln("Result is " ^ ILapl.ppV v)
