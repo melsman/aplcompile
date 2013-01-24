@@ -57,16 +57,20 @@ signal ← {¯50⌈50⌊50×(diff 0,⍵)÷0.01+⍵}
 ## Try it!
 
 The software makes use of the [smlunicode
-library](https://github.com/melsman/smlunicode) project for lexing and
+library](https://github.com/melsman/smlunicode) project for lexing,
 the [aplparse](https://github.com/melsman/aplparse) project for
-parsing, which means that you need to checkout the
-[smlunicode](https://github.com/melsman/smlunicode) sources and the
-[aplparse](https://github.com/melsman/aplparse) sources in folders
+parsing, and the [MoA](https://github.com/melsman/MoA) project for implementing 
+the fundamental APL array operations. This means that you need to checkout the
+[smlunicode](https://github.com/melsman/smlunicode) sources, the
+[aplparse](https://github.com/melsman/aplparse) sources, and the
+[MoA](https://github.com/melsman/MoA) sources in folders
 next to the `aplcompile` sources.
 
 You also need a Standard ML compiler (e.g., [Mlton](http://www.mlton.org/)).
 
 Then simply write `make aplc` followed by `./aplc` in your shell.
+
+To run a series of tests, execute `make tests` in your shell.
 
 ## Limitations
 
