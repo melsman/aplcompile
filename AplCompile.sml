@@ -86,44 +86,44 @@ fun compOpr2_a8a2aM opr1 opr2 =
   | (e1, Is i2) => compOpr2_a8a2aM opr1 opr2 (e1,Ais(scl i2))
   | (Ds d1,e2) => compOpr2_a8a2aM opr1 opr2 (Ads(scl d1),e2)
   | (e1, Ds d2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(scl d2))
-  | (Ais a1, e2) => compOpr2_a8a2aM opr1 opr2 (Ads(each i2d a1),e2)
-  | (e1, Ais a2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(each i2d a2))
+  | (Ais a1, e2) => compOpr2_a8a2aM opr1 opr2 (Ads(each (ret o i2d) a1),e2)
+  | (e1, Ais a2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(each (ret o i2d) a2))
   | _ => raise Fail "compOpr2_a8a2aM: expecting two similar arrays as arguments"
 
 fun compOpr2 opr oprd =
  fn (Is i1, Is i2) => S(Is(opr(i1,i2)))
   | (Ds d1, Ds d2) => S(Ds(oprd(d1,d2)))
-  | (Ais a1, Ais a2) => M(sum Int opr a1 a2 >>= (fn x => ret(Ais x)))
-  | (Ads a1, Ads a2) => M(sum Double oprd a1 a2 >>= (fn x => ret(Ads x)))
-  | (Ais a1, Is i2) => S(Ais(each(fn x => opr(x,i2))a1))
-  | (Ads a1, Ds d2) => S(Ads(each(fn x => oprd(x,d2))a1))
-  | (Is i1, Ais a2) => S(Ais(each(fn x => opr(i1,x))a2))
-  | (Ds d1, Ads a2) => S(Ads(each(fn x => oprd(d1,x))a2))
+  | (Ais a1, Ais a2) => M(sum Int (ret o opr) a1 a2 >>= (fn x => ret(Ais x)))
+  | (Ads a1, Ads a2) => M(sum Double (ret o oprd) a1 a2 >>= (fn x => ret(Ads x)))
+  | (Ais a1, Is i2) => S(Ais(each(fn x => ret(opr(x,i2)))a1))
+  | (Ads a1, Ds d2) => S(Ads(each(fn x => ret(oprd(x,d2)))a1))
+  | (Is i1, Ais a2) => S(Ais(each(fn x => ret(opr(i1,x)))a2))
+  | (Ds d1, Ads a2) => S(Ads(each(fn x => ret(oprd(d1,x)))a2))
   | (Is i1, e2) => compOpr2 opr oprd (Ds(i2d i1),e2)
   | (e1, Is i2) => compOpr2 opr oprd (e1,Ds(i2d i2))
-  | (Ais a1, e2) => compOpr2 opr oprd (Ads(each i2d a1),e2)
-  | (e1, Ais a2) => compOpr2 opr oprd (e1,Ads(each i2d a2))
+  | (Ais a1, e2) => compOpr2 opr oprd (Ads(each (ret o i2d) a1),e2)
+  | (e1, Ais a2) => compOpr2 opr oprd (e1,Ads(each (ret o i2d) a2))
   | _ => raise Fail "compOpr2.function"
 
 fun compOpr1 opr oprd =
  fn Is i => S(Is(opr i))
   | Ds d => S(Ds(oprd d))
-  | Ais a => S(Ais(each opr a))
-  | Ads a => S(Ads(each oprd a))
+  | Ais a => S(Ais(each (ret o opr) a))
+  | Ads a => S(Ads(each (ret o oprd) a))
   | _ => raise Fail "compOpr1.function"
 
 fun compOpr1d opr =
  fn Is i => S(Ds(opr(i2d i)))
   | Ds d => S(Ds(opr d))
-  | Ais a => S(Ads(each (opr o i2d) a))
-  | Ads a => S(Ads(each opr a))
+  | Ais a => S(Ads(each (ret o opr o i2d) a))
+  | Ads a => S(Ads(each (ret o opr) a))
   | _ => raise Fail "compOpr1d.function"
 
 fun compOpr1i opr oprd =
  fn Is i => S(Is(opr i))
   | Ds d => S(Is(oprd d))
-  | Ais a => S(Ais(each opr a))
-  | Ads a => S(Ais(each oprd a))
+  | Ais a => S(Ais(each (ret o opr) a))
+  | Ads a => S(Ais(each (ret o oprd) a))
   | _ => raise Fail "compOpr1i.function"
 
 fun signi x = If(x < I 0,I ~1, I 1)
@@ -243,7 +243,7 @@ fun compileAst e =
                                    M(prod (fn (x,y) =>  
                                               subM(f1[Is x,Is y] >>>= (fn Is z => rett z
                                                                         | _ => raise Fail "comp.Dot: expecting int as result")))
-                                          (op * ) (I(id_item_int noii)) a1 a2 Is Ais)
+                                          (ret o op * ) (I(id_item_int noii)) a1 a2 Is Ais)
                                  | _ => raise Fail "comp.Dot: expecting two arrays",
                                 noii))
                      | _ => raise Fail "comp.Dot: expecting two functions",
@@ -253,10 +253,10 @@ fun compileAst e =
               k(Fs (fn [Fs (f,_)] =>
                        let exception No
                            fun tryInt g x =
-                               each (fn x => case f[g x] of S(Is v) => v
+                               each (fn x => case f[g x] of S(Is v) => ret v
                                                            | _ => raise No) x
                            fun tryDouble g x =
-                               each (fn x => case f[g x] of S(Ds v) => v
+                               each (fn x => case f[g x] of S(Ds v) => ret v
                                                           | _ => raise Fail "Not Ds") x
                        in rett(Fs (fn [Ais x] => (S(Ais(tryInt Is x)) handle No => S(Ads(tryDouble Is x)))
                                     | [Ads x] => (S(Ais(tryInt Ds x)) handle No => S(Ads(tryDouble Ds x)))
