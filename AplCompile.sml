@@ -82,12 +82,12 @@ fun compOpr2_i8a2a opr1 opr2 =
 fun compOpr2_a8a2aM opr1 opr2 =
  fn (Ais a1, Ais a2) => M(opr1 a1 a2 >>= (fn a => ret(Ais a)))
   | (Ads a1, Ads a2) => M(opr2 a1 a2 >>= (fn a => ret(Ads a)))
-  | (Is i1,e2) => compOpr2_a8a2aM opr1 opr2 (Ais(scl i1),e2)
-  | (e1, Is i2) => compOpr2_a8a2aM opr1 opr2 (e1,Ais(scl i2))
-  | (Ds d1,e2) => compOpr2_a8a2aM opr1 opr2 (Ads(scl d1),e2)
-  | (e1, Ds d2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(scl d2))
-  | (Ais a1, e2) => compOpr2_a8a2aM opr1 opr2 (Ads(each (ret o i2d) a1),e2)
-  | (e1, Ais a2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(each (ret o i2d) a2))
+  | (Is i1,e2) => compOpr2_a8a2aM opr1 opr2 (Ais(scl Int i1),e2)
+  | (e1, Is i2) => compOpr2_a8a2aM opr1 opr2 (e1,Ais(scl Int i2))
+  | (Ds d1,e2) => compOpr2_a8a2aM opr1 opr2 (Ads(scl Double d1),e2)
+  | (e1, Ds d2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(scl Double d2))
+  | (Ais a1, e2) => compOpr2_a8a2aM opr1 opr2 (Ads(each Double (ret o i2d) a1),e2)
+  | (e1, Ais a2) => compOpr2_a8a2aM opr1 opr2 (e1,Ads(each Double (ret o i2d) a2))
   | _ => raise Fail "compOpr2_a8a2aM: expecting two similar arrays as arguments"
 
 fun compOpr2 opr oprd =
@@ -95,35 +95,35 @@ fun compOpr2 opr oprd =
   | (Ds d1, Ds d2) => S(Ds(oprd(d1,d2)))
   | (Ais a1, Ais a2) => M(sum Int (ret o opr) a1 a2 >>= (fn x => ret(Ais x)))
   | (Ads a1, Ads a2) => M(sum Double (ret o oprd) a1 a2 >>= (fn x => ret(Ads x)))
-  | (Ais a1, Is i2) => S(Ais(each(fn x => ret(opr(x,i2)))a1))
-  | (Ads a1, Ds d2) => S(Ads(each(fn x => ret(oprd(x,d2)))a1))
-  | (Is i1, Ais a2) => S(Ais(each(fn x => ret(opr(i1,x)))a2))
-  | (Ds d1, Ads a2) => S(Ads(each(fn x => ret(oprd(d1,x)))a2))
+  | (Ais a1, Is i2) => S(Ais(each Int (fn x => ret(opr(x,i2)))a1))
+  | (Ads a1, Ds d2) => S(Ads(each Double (fn x => ret(oprd(x,d2)))a1))
+  | (Is i1, Ais a2) => S(Ais(each Int (fn x => ret(opr(i1,x)))a2))
+  | (Ds d1, Ads a2) => S(Ads(each Double (fn x => ret(oprd(d1,x)))a2))
   | (Is i1, e2) => compOpr2 opr oprd (Ds(i2d i1),e2)
   | (e1, Is i2) => compOpr2 opr oprd (e1,Ds(i2d i2))
-  | (Ais a1, e2) => compOpr2 opr oprd (Ads(each (ret o i2d) a1),e2)
-  | (e1, Ais a2) => compOpr2 opr oprd (e1,Ads(each (ret o i2d) a2))
+  | (Ais a1, e2) => compOpr2 opr oprd (Ads(each Double (ret o i2d) a1),e2)
+  | (e1, Ais a2) => compOpr2 opr oprd (e1,Ads(each Double (ret o i2d) a2))
   | _ => raise Fail "compOpr2.function"
 
 fun compOpr1 opr oprd =
  fn Is i => S(Is(opr i))
   | Ds d => S(Ds(oprd d))
-  | Ais a => S(Ais(each (ret o opr) a))
-  | Ads a => S(Ads(each (ret o oprd) a))
+  | Ais a => S(Ais(each Int (ret o opr) a))
+  | Ads a => S(Ads(each Double (ret o oprd) a))
   | _ => raise Fail "compOpr1.function"
 
 fun compOpr1d opr =
  fn Is i => S(Ds(opr(i2d i)))
   | Ds d => S(Ds(opr d))
-  | Ais a => S(Ads(each (ret o opr o i2d) a))
-  | Ads a => S(Ads(each (ret o opr) a))
+  | Ais a => S(Ads(each Double (ret o opr o i2d) a))
+  | Ads a => S(Ads(each Double (ret o opr) a))
   | _ => raise Fail "compOpr1d.function"
 
 fun compOpr1i opr oprd =
  fn Is i => S(Is(opr i))
   | Ds d => S(Is(oprd d))
-  | Ais a => S(Ais(each (ret o opr) a))
-  | Ads a => S(Ais(each (ret o oprd) a))
+  | Ais a => S(Ais(each Int (ret o opr) a))
+  | Ads a => S(Ais(each Int (ret o oprd) a))
   | _ => raise Fail "compOpr1i.function"
 
 fun signi x = If(x < I 0,I ~1, I 1)
@@ -181,7 +181,7 @@ fun compileAst e =
                                       SOME i => SOME(I i::acc)
                                     | NONE => NONE)
                                  | _ => NONE) (SOME[]) es of
-                 SOME is => k(Ais(vec(fromList is)),emp)
+                 SOME is => k(Ais(vec(fromList Int is)),emp)
                | NONE =>
                  case List.foldr (fn (e,acc) =>
                                      let val s = case e of
@@ -193,7 +193,7 @@ fun compileAst e =
                                         | NONE => raise Fail ("could not parse double value " ^ s)
                                      end) [] es of
                    [] => raise Fail "expecting a non-empty sequence of integers or doubles"
-                 | ds => k(Ads(vec(fromList ds)),emp))
+                 | ds => k(Ads(vec(fromList Double ds)),emp))
             | App1E(e0,e1) =>
               comp G e1 (fn (s,G') =>
               comp (G++G') e0 (fn (f,G'') =>
@@ -253,10 +253,10 @@ fun compileAst e =
               k(Fs (fn [Fs (f,_)] =>
                        let exception No
                            fun tryInt g x =
-                               each (fn x => case f[g x] of S(Is v) => ret v
+                               each Int (fn x => case f[g x] of S(Is v) => ret v
                                                            | _ => raise No) x
                            fun tryDouble g x =
-                               each (fn x => case f[g x] of S(Ds v) => ret v
+                               each Double (fn x => case f[g x] of S(Ds v) => ret v
                                                           | _ => raise Fail "Not Ds") x
                        in rett(Fs (fn [Ais x] => (S(Ais(tryInt Is x)) handle No => S(Ads(tryDouble Is x)))
                                     | [Ads x] => (S(Ais(tryInt Ds x)) handle No => S(Ads(tryDouble Ds x)))
@@ -345,7 +345,7 @@ fun compileAst e =
                                 | Is i => ret (i2d i)
                                 | Ds d => ret d
                                 | _ => raise Fail "expecting array")
-    in runM Type.Double c'
+    in runM Double c'
     end
 end
 
