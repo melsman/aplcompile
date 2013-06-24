@@ -238,12 +238,15 @@ fun compileAst e =
                     noii), 
                 emp)
             | IdE(Symb L.Dot) =>
-              k(Fs (fn [Fs (f1,ii),Fs(f2,_)] =>
+              k(Fs (fn [Fs(f1,ii),Fs(f2,_)] =>
                        rett(Fs (fn [Ais a1, Ais a2] => 
                                    M(prod (fn (x,y) =>  
                                               subM(f1[Is x,Is y] >>>= (fn Is z => rett z
                                                                         | _ => raise Fail "comp.Dot: expecting int as result")))
-                                          (ret o op * ) (I(id_item_int noii)) a1 a2 Is Ais)
+                                          (fn (x,y) =>  
+                                              subM(f2[Is x,Is y] >>>= (fn Is z => rett z
+                                                                        | _ => raise Fail "comp.Dot: expecting int as result")))
+                                          (I(id_item_int noii)) a1 a2 Is Ais)
                                  | _ => raise Fail "comp.Dot: expecting two arrays",
                                 noii))
                      | _ => raise Fail "comp.Dot: expecting two functions",

@@ -2,9 +2,9 @@
 
 This software implements an APL compiler in Standard ML. 
 
-See [the compilation scheme](aplcompile/blob/master/comp.md).
+See [the compilation scheme](comp.md).
 
-See also the [coverage page](aplcompile/blob/master/coverage.md).
+See also the [coverage page](coverage.md).
 
 ## An example
 
