@@ -26,7 +26,7 @@ Here is what happens when the program is compiled and executed:
     double kernel(int n1) {
       int n0 = 0;
       for (int n9 = 0; n9 < 30; n9++) {
-	n0 = ((6+n0)+n9);
+        n0 = ((6+n0)+n9);
       }
       return i2d(n0);
     }
@@ -54,8 +54,8 @@ Here is the result of compiling it:
     double kernel(int n11) {
       double d10 = 0.0;
       for (int n59 = 0; n59 < 100; n59++) {
-	d10 = (max(-50.0,min(50.0,(50.0*(i2d(((1+n59)-((n59<1) ? 0 : n59)))
-	      / (0.01+i2d((1+n59)))))))+d10);
+        d10 = (max(-50.0,min(50.0,(50.0*(i2d(((1+n59)-((n59<1) ? 0 : n59)))
+              / (0.01+i2d((1+n59)))))))+d10);
       }
       return d10;
     }
