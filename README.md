@@ -61,6 +61,103 @@ Here is the result of compiling it:
     }
     Result is 258.557340366
 
+## Example demonstrating transpose and a double-reduce
+
+Consider the following APL program:
+
+```apl
+a ← 3 2 ⍴ ⍳ 5
+a2 ← 3 2 ⍴ ⍳ 4
+b ← ⍉ a
+c ← b, ⍉ a2
+×/ +/ c
+
+⍝ 1 2  1 3 5  -+-> 9  
+⍝ 3 4  2 4 1  -+-> 7
+⍝ 5 1 
+⍝      1 3 1  -+-> 5
+⍝      2 4 2  -+-> 8
+⍝                 ---
+⍝                 2520
+```
+
+Here is the result of compiling it:
+
+    bash-3.2$ ./aplc tests/test15.apl
+    Reading file: tests/test15.apl
+    Parse success:
+     [Assign(a,App2(Rho,Vec[3,2],App1(Iota,5))),
+      Assign(a2,App2(Rho,Vec[3,2],App1(Iota,4))),
+      Assign(b,App1(Trans,a)),
+      Assign(c,App2(Cat,b,App1(Trans,a2))),
+      App1(AppOpr1[1](Slash,Times),App1(AppOpr1[1](Slash,Add),c))]
+    Evaluating
+    double kernel(int n17) {
+      int n16 = 1;
+      for (int n89 = 0; n89 < 4; n89++) {
+	int n39 = 0;
+	for (int n92 = 0; n92 < min(3,max((12-(n89*3)),0)); n92++) {
+	  n39 = ((((n92+(n89*3))<6) ? (((((n92+(n89*3))==5) ? (n92+(n89*3)) : 
+		((2*(n92+(n89*3)))%5))%5)+1) : ((((((n92+(n89*3))-6)==5) ? ((n92+(n89*3))-6) : 
+		((2*((n92+(n89*3))-6))%5))%4)+1))+n39);
+	}
+	n16 = (n39*n16);
+      }
+      return i2d(n16);
+    }
+    Result is 2520.0
+
+## Example demonstrating matrix-multiplication
+
+```apl
+a ← 3 2 ⍴ ⍳ 5
+b ← ⍉ a
+c ← a +.× b
+×/ +/ c
+
+⍝       1  3  5
+⍝       2  4  1
+⍝
+⍝ 1 2   5 11  7  -+->    23
+⍝ 3 4  11 25 19  -+->    55
+⍝ 5 1   7 19 26  -+->    52
+⍝                     65780
+```
+
+Here is the result of compiling the example:
+
+    bash-3.2$ ./aplc tests/test13.apl 
+    Reading file: tests/test13.apl
+    Parse success:
+     [Assign(a,App2(Rho,Vec[3,2],App1(Iota,5))),
+      Assign(b,App1(Trans,a)),
+      Assign(c,App2(AppOpr2[2](Dot,Add,Times),a,b)),
+      App1(AppOpr1[1](Slash,Times),App1(AppOpr1[1](Slash,Add),c))]
+    Evaluating
+    double kernel(int n8) {
+      int n7 = 1;
+      for (int n180 = 0; n180 < 3; n180++) {
+	int n26 = 0;
+	for (int n192 = 0; n192 < min(3,max((9-(n180*3)),0)); n192++) {
+	  int n53 = 0;
+	  for (int n195 = 0; n195 < min(min(2,max((6-(((n192+(n180*3))/3)*2)),0)),min(2,max((6-(((n192+(n180*3))%3)*2)),0))); n195++) {
+	    n53 = (((((n195+(((n192+(n180*3))/3)*2))%5)+1)*(((((((n195+(((n192+(n180*3))%3)*2))==5) 
+		  ? (n195+(((n192+(n180*3))%3)*2)) : ((3*(n195+(((n192+(n180*3))%3)*2)))%5))==5) 
+		  ? (((n195+(((n192+(n180*3))%3)*2))==5) 
+		  ? (n195+(((n192+(n180*3))%3)*2)) : ((3*(n195+(((n192+(n180*3))%3)*2)))%5)) 
+		  : ((2*(((n195+(((n192+(n180*3))%3)*2))==5) 
+		  ? (n195+(((n192+(n180*3))%3)*2)) 
+		  : ((3*(n195+(((n192+(n180*3))%3)*2)))%5)))%5))%5)+1))+n53);
+	  }
+	  n26 = (n53+n26);
+	}
+	n7 = (n26*n7);
+      }
+      return i2d(n7);
+    }
+    Result is 65780.0
+
+
 ## Try it!
 
 The software makes use of the [smlunicode
