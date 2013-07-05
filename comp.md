@@ -36,7 +36,7 @@ Compilation:
       [e1] (G2@G) (fn (s1,G1) =>
       case (s1, s2) of
            (Is i1, Is i2) => k(Is(i1+i2),G2@G1)
-         | (Ais a1, Ais a2) => sum (op +) a1 a2 >>= (fn x => k(Ais x,G2@G1))
+         | (Ais a1, Ais a2) => mmap2 (op +) a1 a2 >>= (fn x => k(Ais x,G2@G1))
          | (Ais a1, Is i2) => k(Ais(mmap(fn x => x+i2)a1),G2@G1)
          | (Is i1, Ais a2) => k(Ais(mmap(fn x => i1+x)a2),G2@G1)
          | _ => err))
@@ -59,4 +59,24 @@ Compilation:
            [e] G (fn (s,G') =>
            f s >>= (fn s' => k(s',G')))
        | _ => err
+
+## Compiling into ML
+
+    e ::= i | x | let x=e1 in e2 | \x.e | e1(e2)
+
+    [ _ ] _ : AST -> (ML -> ML) -> ML
+
+    [x] k = k x
+
+    [i] k = k i
+
+    [x<-e] k = let x = [e] (fn x => x) in k x
+
+    [e1;e2] k = [e1] (fn x => [e2] k)
+
+    [e1+e2] k = [e2] (fn x => [e1] (fn y => k (y+x)))
+
+    [lam e] k = k (\w.[e] (fn x => x))
+
+    [x(e)] k = [e] (fn y => k (x(y)))
 
