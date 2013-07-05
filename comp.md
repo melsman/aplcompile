@@ -1,5 +1,9 @@
 ## Compiling APL
 
+Language
+
+    e ::= i | e1;e2 | e1+e2 | x<-e | x | lam e | x(e)  
+
 Dynamically typed __terms__:
 
 ```sml
