@@ -167,6 +167,7 @@ fun compileAst e =
                      | l => raise Fail ("comp.LambE(0,2): expecting two arguments to be passed to lambda: " ^ Int.toString(List.length l)),
                     noii),
                 emp)
+            | LambE((0,0),e) => comp G (LambE((0,1),e)) k   (* support for constant functions *)
             | LambE((x,y),e) =>
               raise Fail ("comp.LambE: case not supported: (" ^ Int.toString x ^ "," ^ Int.toString y ^ ")")
             | IdE(Var v) => compId G (Var v) k
@@ -369,9 +370,10 @@ fun outprog ofile p =
      ; outln body
      ; outmain outln
      ; TextIO.closeOut os
+     ; print ("Wrote file " ^ ofile ^ "\n")
     end
 
-fun compileAndRun s =
+fun compileAndRun eval_p s =
     let val ts = AplLex.lex s
         val () = prln "Program lexed:"
         val () = prln (" " ^ AplLex.pr_tokens ts)
@@ -384,9 +386,12 @@ fun compileAndRun s =
                   case !outfile of
                     SOME ofile => outprog ofile p
                   | NONE => ()
-              val () = prln("Evaluating")
-              val v = ILapl.eval p ILapl.Uv
-          in prln("Result is " ^ ILapl.ppV v)
+          in if eval_p then
+               let val () = prln("Evaluating")
+                   val v = ILapl.eval p ILapl.Uv
+               in prln("Result is " ^ ILapl.ppV v)
+               end
+             else ()
           end)
        | NONE => prln "Parse error."
     end
@@ -399,10 +404,10 @@ fun readFile f =
        end handle ? => (TextIO.closeIn is; raise ?)
     end
 
-fun compileAndRunFile f =
+fun compileAndRunFile eval_p f =
     let val () = prln ("Reading file: " ^ f)
         val c = readFile f
-    in compileAndRun c
+    in compileAndRun eval_p c
     end
 
 end
