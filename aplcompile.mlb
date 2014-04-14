@@ -2,7 +2,8 @@ local
    $(SML_LIB)/basis/basis.mlb
    ../smlunicode/unicode.mlb
    ../aplparse/aplparse.mlb
-   ../MoA/ilapl.mlb
 in
+   ../MoA/ilapl.mlb
+   ../MoA/apl.mlb
    AplCompile.sml
 end

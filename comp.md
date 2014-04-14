@@ -60,23 +60,31 @@ Compilation:
            f s >>= (fn s' => k(s',G')))
        | _ => err
 
-## Compiling into ML
+## Compiling into Fun1.5
 
-    e ::= i | x | let x=e1 in e2 | \x.e | e1(e2)
+    opr ::= reduce[1,2] | map[1,1] | transpose[0,1] | out[2,2] 
+          | add[0,2] | mul[0,2] | max[0,2] | min[0,2]
 
-    [ _ ] _ : AST -> (ML -> ML) -> ML
+    a ::= <i1,...,in>
 
-    [x] k = k x
+    e ::= a | x | let x = e in e | fun f (x1,...,xn) = e in e 
+        | f(e1,...,en) | opr [f1,...,fn] (e1,...,em)
 
-    [i] k = k i
+    [ _ ] _ : AST -> E -> (ML -> E -> ML) -> ML
 
-    [x<-e] k = let x = [e] (fn x => x) in k x
+    [x] E k = k E x
 
-    [e1;e2] k = [e1] (fn x => [e2] k)
+    [a] E k = k E a
 
-    [e1+e2] k = [e2] (fn x => [e1] (fn y => k (y+x)))
+    [x<-e] E k = let x = [e] E (fn _ x => x) in k (E+{x->x}) x
 
-    [lam e] k = k (\w.[e] (fn x => x))
+    [e1;e2] E k = [e1] E (fn E x => [e2] E k)
 
-    [x(e)] k = [e] (fn y => k (x(y)))
+    [e1+e2] k = [e2] E (fn E x => [e1] E (fn E y => k E (add[](y,x))))
+
+    [lam e] E k = 
+      fun f (w) = [e] (E+{w->w}) (fn _ x => x)
+      in k E f
+
+    [x(e)] E k = [e] E (fn E y => k E (E(x)(y)))
 

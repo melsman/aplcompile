@@ -1,18 +1,25 @@
+structure AplToMla = AplCompile(Mla)
+structure AplToC = AplCompile(ILapl)
 
-val n = CommandLine.name()
+val name = CommandLine.name()
 
 fun usage() =
-    (print ("Usage: " ^ n ^ " [-o ofile] [-c] file.apl\n  -o file : specify output file\n  -c : compile only (no evaluation)\n");
+    (print ("Usage: " ^ name ^ " [-o ofile] [-c] [-v] [-ml] file.apl\n" ^
+            "   -o file : specify output file\n" ^
+            "   -c : compile only (no evaluation)\n" ^
+            "   -ml : use ML backend\n" ^
+            "   -v : verbose\n");
      OS.Process.exit OS.Process.success)
 
-val eval_p = ref true
-fun runargs [f] = AplCompile.compileAndRunFile (!eval_p) f
-  | runargs ("-o" :: ofile :: rest) =
-    (AplCompile.outfile := SOME ofile;
-     runargs rest)
-  | runargs ("-c" :: rest) = 
-    (eval_p := false;
-     runargs rest)
-  | runargs _ = usage ()
+val compileAndRunFile = ref AplToC.compileAndRunFile
 
-val () = runargs(CommandLine.arguments())
+fun runargs args flags =
+    case args of
+        [f] => !compileAndRunFile flags f
+      | "-ml" :: rest => compileAndRunFile := AplToMla.compileAndRunFile
+                         before runargs rest flags
+      | "-o" :: ofile :: rest => runargs rest (("-o",SOME ofile)::flags)
+      | f :: rest =>  runargs rest ((f,NONE)::flags)
+      | _ => usage ()
+
+val () = runargs (CommandLine.arguments()) nil
