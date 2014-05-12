@@ -171,6 +171,11 @@ fun compileAst e =
               comp G e1 (fn (s1,G1) =>
               comp (G++G1) (SeqE es) (fn (s2,G2) =>
               k(s2,G1++G2)))
+            | LambE((2,2),e) => (* dyadic operator => dyadic function *)
+              k(Fs (fn [f,g] => compLam22 G e (f,g)
+                     | _ => raise Fail "comp.LambE(2,2): expecting 2 operator arguments",
+                    noii),
+                emp)
             | LambE((1,1),e) => (* monadic operator => monadic function *)
               k(Fs (fn [f] => compLam11 G e f
                      | _ => raise Fail "comp.LambE(1,1): expecting 1 operator argument",
@@ -366,6 +371,13 @@ fun compileAst e =
         and compLam12 G e f =
             rett(Fs(fn [x,y] =>
                        let val G' = [(Symb L.Alphaalpha, f),(Symb L.Omega, x),(Symb L.Alpha, y)]
+                       in comp (G++G') e (fn (s,_) => rett s)
+                       end
+                     | _ => raise Fail "compLam12: expecting 2 arguments",
+                    noii))
+        and compLam22 G e (f,g) =
+            rett(Fs(fn [x,y] =>
+                       let val G' = [(Symb L.Alphaalpha, f),(Symb L.Omegaomega, g),(Symb L.Omega, y),(Symb L.Alpha, x)]
                        in comp (G++G') e (fn (s,_) => rett s)
                        end
                      | _ => raise Fail "compLam12: expecting 2 arguments",
