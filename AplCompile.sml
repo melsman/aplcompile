@@ -466,7 +466,7 @@ fun compileAndRun flags s =
         val ts = AplLex.lex s
         fun pr f = if verbose_p then prln(f()) else ()
         val () = pr (fn () => "Program lexed:")
-        val () = pr (fn () => " " ^ AplLex.pr_tokens ts)
+        val () = pr (fn () => " " ^ AplLex.pr_tokens (map #1 ts))
         val () = pr (fn () => "Parsing tokens...")
     in case AplParse.parse AplParse.env0 ts of
          SOME (e,_) => 

@@ -1,19 +1,20 @@
-MLCOMP=mlton
+MLCOMP ?= mlton
 FILES=aplcompile.mlb AplCompile.sml
 
 .PHONY: all
 all: aplc
 
-aplc: $(FILES) aplc.mlb aplc.sml
-	$(MLCOMP) aplc.mlb
+aplc: $(FILES) aplc.mlb aplc.sml Makefile
+	$(MLCOMP) -output aplc aplc.mlb
 
-aplcompile: $(FILES)
-	$(MLCOMP) aplcompile.mlb
+aplcompile: $(FILES) Makefile
+	$(MLCOMP) -output aplcompile aplcompile.mlb
 
 .PHONY: tests
-tests: aplc
+tests: aplc Makefile
 	$(MAKE) -C tests
 
-clean:
+.PHONY: clean
+clean: Makefile
 	rm -rf *~ MLB aplcompile aplc
 	$(MAKE) -C tests clean 
