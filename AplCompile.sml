@@ -1,6 +1,6 @@
 functor AplCompile(X : ILAPL) :
 sig
-  type flag = string * string option  (* supported flags: [-o f, -c, -v] *)
+  type flag = string * string option  (* supported flags: [-o f, -ml, -c, -v] *)
   val compileAndRun     : flag list -> string -> unit
   val compileAndRunFile : flag list -> string -> unit
 end = 
@@ -189,7 +189,7 @@ fun signd x = If(ltd(x,D 0.0),I ~1, I 1)
 fun compErr r msg =
     raise Fail ("Compile Error: " ^ Region.pp r ^ ".\n  " ^ msg)
 
-fun compileAst e =
+fun compileAst verbose_p e =
     let fun comp (G:env) e (k: s*env -> s N) : s N =
             case e of
               IntE (s,r) =>
@@ -450,7 +450,7 @@ fun compileAst e =
                                 | Is i => ret (i2d i)
                                 | Ds d => ret d
                                 | _ => raise Fail "expecting array")
-    in runM Double c'
+    in runM verbose_p Double c'
     end
 end
 
@@ -474,11 +474,16 @@ fun compileAndRun flags s =
     in case AplParse.parse AplParse.env0 ts of
          SOME (e,_) => 
          (pr(fn () => "Parse success:\n " ^ AplAst.pr_exp e);
-          let val p = compileAst e
+          let val p = compileAst verbose_p e
               val () =
                   case outfile of
                     SOME ofile => X.outprog ofile p
-                  | NONE => ()
+                  | NONE =>
+                    if not verbose_p then
+                      (print "Resulting program:\n";
+                       print (X.pp_prog p);
+                       print "\n")
+                    else ()  (* program already printed! *)
           in if compile_only_p then ()
              else let val () = prln("Evaluating")
                       val v = X.eval p X.Uv
