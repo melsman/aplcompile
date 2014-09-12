@@ -7,6 +7,7 @@ fun usage() =
     (print ("Usage: " ^ name ^ " [-o ofile] [-c] [-v] [-ml] file.apl\n" ^
             "   -o file : specify output file\n" ^
             "   -c : compile only (no evaluation)\n" ^
+            "   -noopt : disable optimizations\n" ^
             "   -ml : use ML backend\n" ^
             "   -v : verbose\n");
      OS.Process.exit OS.Process.success)
@@ -19,7 +20,7 @@ fun runargs args flags =
       | "-ml" :: rest => compileAndRunFile := AplToMla.compileAndRunFile
                          before runargs rest flags
       | "-o" :: ofile :: rest => runargs rest (("-o",SOME ofile)::flags)
-      | f :: rest =>  runargs rest ((f,NONE)::flags)
+      | f :: rest => runargs rest ((f,NONE)::flags)
       | _ => usage ()
 
 val () = runargs (CommandLine.arguments()) nil

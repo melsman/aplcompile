@@ -189,7 +189,7 @@ fun signd x = If(ltd(x,D 0.0),I ~1, I 1)
 fun compErr r msg =
     raise Fail ("Compile Error: " ^ Region.pp r ^ ".\n  " ^ msg)
 
-fun compileAst verbose_p e =
+fun compileAst flags e =
     let fun comp (G:env) e (k: s*env -> s N) : s N =
             case e of
               IntE (s,r) =>
@@ -450,7 +450,7 @@ fun compileAst verbose_p e =
                                 | Is i => ret (i2d i)
                                 | Ds d => ret d
                                 | _ => raise Fail "expecting array")
-    in runM verbose_p Double c'
+    in runM flags Double c'
     end
 end
 
@@ -465,6 +465,7 @@ fun flag flags s =
 fun compileAndRun flags s =
     let val compile_only_p = flag_p flags "-c"
         val verbose_p = flag_p flags "-v"
+        val optlevel = if flag_p flags "-noopt" then 0 else 1
         val outfile = flag flags "-o"
         val ts = AplLex.lex s
         fun pr f = if verbose_p then prln(f()) else ()
@@ -474,7 +475,7 @@ fun compileAndRun flags s =
     in case AplParse.parse AplParse.env0 ts of
          SOME (e,_) => 
          (pr(fn () => "Parse success:\n " ^ AplAst.pr_exp e);
-          let val p = compileAst verbose_p e
+          let val p = compileAst {verbose=verbose_p, optlevel=optlevel} e
               val () =
                   case outfile of
                     SOME ofile => X.outprog ofile p
