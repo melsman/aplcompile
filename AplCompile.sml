@@ -1,8 +1,8 @@
 functor AplCompile(X : ILAPL) :
 sig
-  type flag = string * string option  (* supported flags: [-o f, -ml, -c, -v] *)
-  val compileAndRun     : flag list -> string -> unit
-  val compileAndRunFile : flag list -> string -> unit
+  type flag = string * string option  (* supported flags: [-o f, -ml, -c, -v, -noopt] *)
+  val compileAndRun      : flag list -> string -> unit
+  val compileAndRunFiles : flag list -> string list -> unit
 end = 
 struct
 
@@ -311,20 +311,24 @@ fun compileAst flags e =
                     noii), 
                 emp)
             | IdE(Symb L.Dot,r) =>
-              k(Fs (fn [Fs(f1,ii),Fs(f2,_)] =>
-                       rett(Fs (fn [Ais a1, Ais a2] => 
-                                   M(prod Int (fn (x,y) =>  
-                                                  subM(f1[Is x,Is y] >>>= (fn Is z => rett z
-                                                                          | _ => compErr r "expecting int as result of dot operation")))
-                                          (fn (x,y) =>  
-                                              subM(f2[Is x,Is y] >>>= (fn Is z => rett z
-                                                                      | _ => compErr r "expecting int as result of dot operation")))
-                                          (I(id_item_int noii)) a1 a2 Is Ais)
-                               | _ => compErr r "expecting two arrays as arguments to function-specialized dot operator",
-                                noii))
-                     | _ => compErr r "expecting two functions as arguments to dot operator",
-                    noii),
-                emp)
+              (case compIdOpt G (Var "$dot",r) k of
+                   SOME res => res
+                 | NONE => 
+                   k(Fs (fn [Fs(f1,ii),Fs(f2,_)] =>
+                            rett(Fs (fn [Ais a1, Ais a2] => 
+                                        M(prod Int (fn (x,y) =>  
+                                                       subM(f1[Is x,Is y] >>>= (fn Is z => rett z
+                                                                               | _ => compErr r "expecting int as result of dot operation")))
+                                               (fn (x,y) =>  
+                                                   subM(f2[Is x,Is y] >>>= (fn Is z => rett z
+                                                                           | _ => compErr r "expecting int as result of dot operation")))
+                                               (I(id_item_int noii)) a1 a2 Is Ais)
+                                    | _ => compErr r "expecting two arrays as arguments to function-specialized dot operator",
+                                     noii))
+                        | _ => compErr r "expecting two functions as arguments to dot operator",
+                         noii),
+                     emp)
+              )
             | IdE(Symb L.Each,r) => 
               k(Fs (fn [Fs (f,_)] =>
                        let exception No
@@ -410,9 +414,13 @@ fun compileAst flags e =
               emp)
            
         and compId G (id,r) k =
+            case compIdOpt G (id,r) k of
+                SOME r => r
+              | NONE => compErr r ("identifier " ^ AplAst.pr_id id ^ " not in environment")
+        and compIdOpt G (id,r) k =
             case lookup G id of
-              SOME x => k(x,emp)
-            | NONE => compErr r ("identifier " ^ AplAst.pr_id id ^ " not in environment")
+                SOME x => SOME(k(x,emp))
+              | NONE => NONE
         and compLam11 G e f =
             rett(Fs(fn [x] =>
                        let val G' = [(Symb L.Alphaalpha, f),(Symb L.Omega, x)]
@@ -462,38 +470,6 @@ fun flag flags s =
         SOME (_,SOME v) => SOME v
       | _ => NONE
 
-fun compileAndRun flags s =
-    let val compile_only_p = flag_p flags "-c"
-        val verbose_p = flag_p flags "-v"
-        val optlevel = if flag_p flags "-noopt" then 0 else 1
-        val outfile = flag flags "-o"
-        val ts = AplLex.lex s
-        fun pr f = if verbose_p then prln(f()) else ()
-        val () = pr (fn () => "Program lexed:")
-        val () = pr (fn () => " " ^ AplLex.pr_tokens (map #1 ts))
-        val () = pr (fn () => "Parsing tokens...")
-    in case AplParse.parse AplParse.env0 ts of
-         SOME (e,_) => 
-         (pr(fn () => "Parse success:\n " ^ AplAst.pr_exp e);
-          let val p = compileAst {verbose=verbose_p, optlevel=optlevel} e
-              val () =
-                  case outfile of
-                    SOME ofile => X.outprog ofile p
-                  | NONE =>
-                    if not verbose_p then
-                      (print "Resulting program:\n";
-                       print (X.pp_prog p);
-                       print "\n")
-                    else ()  (* program already printed! *)
-          in if compile_only_p then ()
-             else let val () = prln("Evaluating")
-                      val v = X.eval p X.Uv
-                  in prln("Result is " ^ X.ppV v)
-                  end
-          end)
-       | NONE => prln "Parse error."
-    end
-
 fun readFile f =
     let val is = TextIO.openIn f
     in let val s = TextIO.inputAll is
@@ -502,10 +478,76 @@ fun readFile f =
        end handle ? => (TextIO.closeIn is; raise ?)
     end
 
-fun compileAndRunFile flags f =
-    let val () = prln ("Reading file: " ^ f)
-        val c = readFile f
-    in compileAndRun flags c
+fun parseFile flags pe f =
+    let val verbose_p = flag_p flags "-v"
+        val () = prln ("[Reading file: " ^ f ^ "]")
+        val s = readFile f
+        val ts = AplLex.lex f s
+        fun pr f = if verbose_p then prln(f()) else ()
+        val () = pr (fn () => "File lexed:")
+        val () = pr (fn () => " " ^ AplLex.pr_tokens (map #1 ts))
+        val () = pr (fn () => "Parsing tokens...")
+    in case AplParse.parse pe ts of
+           SOME (e,pe') => 
+           (pr(fn () => "Parse success:\n " ^ AplAst.pr_exp e);
+            (e,pe'))
+         | NONE => raise Fail ("Error parsing file: " ^ f) 
     end
+
+fun parseFiles flags (pe0 : AplParse.env) (fs: string list) : AplAst.exp =
+    let val verbose_p = flag_p flags "-v"
+        fun mergeExps (NONE,e) = SOME e
+          | mergeExps (SOME e0,e) = SOME(AplParse.seq(e0,e))
+        fun parseFs pe = 
+            fn (nil, NONE) => raise Fail "Expecting at least one file"
+             | (nil, SOME e) => e
+             | (f::fs, acc) =>
+                let val (e,pe') = parseFile flags pe f
+                in parseFs (AplParse.plus(pe,pe')) (fs,mergeExps (acc,e))
+                end 
+    in parseFs pe0 (fs,NONE)
+    end
+
+fun compileExp flags e =
+    let val compile_only_p = flag_p flags "-c"
+        val verbose_p = flag_p flags "-v"
+        val optlevel = if flag_p flags "-noopt" then 0 else 1
+        val outfile = flag flags "-o"
+        val p = compileAst {verbose=verbose_p, optlevel=optlevel} e
+        val () =
+            case outfile of
+                SOME ofile => X.outprog ofile p
+              | NONE =>
+                if not verbose_p then
+                  (print "Resulting program:\n";
+                   print (X.pp_prog p);
+                   print "\n")
+                else ()  (* program already printed! *)
+        val () = if compile_only_p then ()
+                 else let val () = prln("Evaluating")
+                          val v = X.eval p X.Uv
+                      in prln("Result is " ^ X.ppV v)
+                      end
+    in ()
+    end
+
+fun compileAndRun flags s =
+    let val verbose_p = flag_p flags "-v"
+        val ts = AplLex.lex "stream" s
+        fun pr f = if verbose_p then prln(f()) else ()
+        val () = pr (fn () => "Program lexed:")
+        val () = pr (fn () => " " ^ AplLex.pr_tokens (map #1 ts))
+        val () = pr (fn () => "Parsing tokens...")
+    in case AplParse.parse AplParse.env0 ts of
+           SOME (e,_) =>         
+           (pr(fn () => "Parse success:\n " ^ AplAst.pr_exp e);
+            compileExp flags e)
+         | NONE => prln "Parse error."
+    end
+
+fun compileAndRunFiles flags fs =
+    let val e = parseFiles flags AplParse.env0 fs
+    in compileExp flags e
+    end handle Fail s => prln (s ^ "\n")
 
 end

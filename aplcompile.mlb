@@ -1,6 +1,5 @@
 local
    $(SML_LIB)/basis/basis.mlb
-   ../smlunicode/unicode.mlb
    ../aplparse/aplparse.mlb
 in
    ../MoA/ilapl.mlb
