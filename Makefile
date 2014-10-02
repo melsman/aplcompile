@@ -10,6 +10,10 @@ aplc: $(FILES) aplc.mlb aplc.sml Makefile
 aplcompile: $(FILES) Makefile
 	$(MLCOMP) -output aplcompile aplcompile.mlb
 
+.PHONY: install
+install:
+	cp -p aplc $(DESTDIR)/bin/
+
 .PHONY: tests
 tests: aplc Makefile
 	$(MAKE) -C tests
