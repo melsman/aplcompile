@@ -1,8 +1,8 @@
 local
    $(SML_LIB)/basis/basis.mlb
-   ../aplparse/aplparse.mlb
+   $(SMACKAGE)/aplparse/v1/aplparse.mlb
 in
-   ../MoA/ilapl.mlb
-   ../MoA/apl.mlb
+   $(SMACKAGE)/MoA/v1/ilapl.mlb
+   $(SMACKAGE)/MoA/v1/apl.mlb
    AplCompile.sml
 end

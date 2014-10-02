@@ -1,4 +1,4 @@
-MLCOMP ?= mlton
+MLCOMP ?= mlton -mlb-path-map $(HOME)/.mlton/mlb-path-map
 FILES=aplcompile.mlb AplCompile.sml
 
 .PHONY: all
