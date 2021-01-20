@@ -1,0 +1,4 @@
+require {
+  github.com/diku-dk/sml-aplparse 0.1.1 #af663034374adc9c180de2f45865ebbc78394783
+  github.com/melsman/MoA 1.1.0 #0b58475a26d3315343883f95240100357add4dac
+}

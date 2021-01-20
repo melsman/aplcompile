@@ -3,7 +3,7 @@ sig
   type flag = string * string option  (* supported flags: [-o f, -ml, -c, -v, -noopt] *)
   val compileAndRun      : flag list -> string -> unit
   val compileAndRunFiles : flag list -> string list -> unit
-end = 
+end =
 struct
 
 type flag =  string * string option
@@ -26,7 +26,7 @@ local
                             | NOii
 
   type id_item = int identity_item * real identity_item * bool identity_item
-                 
+
   fun id_item ii v =
       case ii of
         Lii v => v
@@ -52,11 +52,11 @@ local
       case a of
         M a => M(a >>= (fn a => case b a of S x => ret x
                                           | M m => m))
-      | S a => b a 
+      | S a => b a
   fun subM (M c) = c
     | subM (S e) = ret e
 
-  datatype ty = Ity | Dty | Bty | Aty of ty | FUNty of ty list -> ty | APPty of ty list * ty 
+  datatype ty = Ity | Dty | Bty | Aty of ty | FUNty of ty list -> ty | APPty of ty list * ty
 
   datatype s =                         (* Terms *)
       Bs of BOOL                       (*   boolean *)
@@ -84,7 +84,7 @@ local
       | NONE => NONE
   val emp : env = []
   fun plus (e1,e2) = e2@e1
-  infix ++ 
+  infix ++
   val op ++ = plus
   fun uncurry f (x,y) = f x y
   fun repair s = String.translate (fn #"-" => "~"
@@ -200,7 +200,7 @@ fun compileAst flags e =
               (case StoD s of
                  SOME d => k (Ds(D d),emp)
                | NONE => compErr r ("Expecting double, got " ^ s))
-            | AssignE(v,e,_) => 
+            | AssignE(v,_,e,_) =>
               let fun cont f x = let val t = f x in k(t,[(Var v,t)]) end
               in comp G e (fn (Ais a,_) => M(letm_asgn Int a) >>>= cont Ais
                           | (Ads a,_) => M(letm_asgn Double a) >>>= cont Ads
@@ -293,7 +293,7 @@ fun compileAst flags e =
                                       case f of
                                         Fs (f,_) => f [s1,s2] >>>= (fn s => k(s,G2++G1++G0))
                                       | _ => compErr r "expecting dyadic operator")))
-            | IdE(Symb L.Slash,r) => 
+            | IdE(Symb L.Slash,r) =>
               k(Fs (fn [Fs (f,ii)] =>
                        rett(Fs (fn [Ais x] => M(reduce Int (fn (x,y) =>
                                                         subM(f[Is x,Is y] >>>= (fn Is z => rett z
@@ -308,18 +308,18 @@ fun compileAst flags e =
                                  | _ => compErr r "expecting array as right argument to reduce",
                                 noii))
                      | _ => compErr r "expecting function as left argument to reduce",
-                    noii), 
+                    noii),
                 emp)
             | IdE(Symb L.Dot,r) =>
               (case compIdOpt G (Var "$dot",r) k of
                    SOME res => res
-                 | NONE => 
+                 | NONE =>
                    k(Fs (fn [Fs(f1,ii),Fs(f2,_)] =>
-                            rett(Fs (fn [Ais a1, Ais a2] => 
-                                        M(prod Int (fn (x,y) =>  
+                            rett(Fs (fn [Ais a1, Ais a2] =>
+                                        M(prod Int (fn (x,y) =>
                                                        subM(f1[Is x,Is y] >>>= (fn Is z => rett z
                                                                                | _ => compErr r "expecting int as result of dot operation")))
-                                               (fn (x,y) =>  
+                                               (fn (x,y) =>
                                                    subM(f2[Is x,Is y] >>>= (fn Is z => rett z
                                                                            | _ => compErr r "expecting int as result of dot operation")))
                                                (I(id_item_int noii)) a1 a2 Is Ais)
@@ -329,7 +329,7 @@ fun compileAst flags e =
                          noii),
                      emp)
               )
-            | IdE(Symb L.Each,r) => 
+            | IdE(Symb L.Each,r) =>
               k(Fs (fn [Fs (f,_)] =>
                        let exception No
                            fun tryInt t g x =
@@ -344,7 +344,7 @@ fun compileAst flags e =
                                    noii))
                        end
                      | _ => compErr r "expecting function as left argument to each operation",
-                    noii), 
+                    noii),
                 emp)
             | IdE(Symb L.Iota,r) => compPrimFunM k r (fn Is i => S(Ais(iota i))
                                                        | Ais a => S(Ais(iota' a))
@@ -406,13 +406,13 @@ fun compileAst flags e =
             k(Fs (fn [x] => mon x
                    | _ => compErr r "monadic function expecting one argument",
                   noii),
-              emp) 
+              emp)
         and compPrimFunD k r dya ii =
             k(Fs (fn [x1,x2] => dya (x1,x2)
                    | _ => compErr r "dyadic function expecting two arguments",
                   ii),
               emp)
-           
+
         and compId G (id,r) k =
             case compIdOpt G (id,r) k of
                 SOME r => r
@@ -487,24 +487,24 @@ fun parseFile flags pe f =
         val () = pr (fn () => "File lexed:")
         val () = pr (fn () => " " ^ AplLex.pr_tokens (map #1 ts))
         val () = pr (fn () => "Parsing tokens...")
-    in case AplParse.parse pe ts of
-           SOME (e,pe') => 
-           (pr(fn () => "Parse success:\n " ^ AplAst.pr_exp e);
-            (e,pe'))
-         | NONE => raise Fail ("Error parsing file: " ^ f) 
+        val (e,pe') = AplParse.parse pe ts
+                      handle AplParse.ParseErr (l,m) =>
+                             raise Fail ("Error parsing file " ^ f ^ ": " ^ m)
+    in pr (fn () => "Parse success:\n " ^ AplAst.pr_exp e);
+       (e,pe')
     end
 
 fun parseFiles flags (pe0 : AplParse.env) (fs: string list) : AplAst.exp =
     let val verbose_p = flag_p flags "-v"
         fun mergeExps (NONE,e) = SOME e
           | mergeExps (SOME e0,e) = SOME(AplParse.seq(e0,e))
-        fun parseFs pe = 
+        fun parseFs pe =
             fn (nil, NONE) => raise Fail "Expecting at least one file"
              | (nil, SOME e) => e
              | (f::fs, acc) =>
                 let val (e,pe') = parseFile flags pe f
                 in parseFs (AplParse.plus(pe,pe')) (fs,mergeExps (acc,e))
-                end 
+                end
     in parseFs pe0 (fs,NONE)
     end
 
@@ -538,11 +538,13 @@ fun compileAndRun flags s =
         val () = pr (fn () => "Program lexed:")
         val () = pr (fn () => " " ^ AplLex.pr_tokens (map #1 ts))
         val () = pr (fn () => "Parsing tokens...")
-    in case AplParse.parse AplParse.env0 ts of
-           SOME (e,_) =>         
+    in case SOME(#1(AplParse.parse AplParse.env0 ts))
+            handle AplParse.ParseErr (l,m) =>
+                   (prln "Parse error."; NONE)
+        of SOME e =>
            (pr(fn () => "Parse success:\n " ^ AplAst.pr_exp e);
             compileExp flags e)
-         | NONE => prln "Parse error."
+         | NONE => ()
     end
 
 fun compileAndRunFiles flags fs =
